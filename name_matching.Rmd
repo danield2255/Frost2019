@@ -1,0 +1,64 @@
+---
+title: "Artist Name Issue"
+author: "Kelly Bodwin"
+date: "7/23/2019"
+output: html_document
+---
+
+```{r setup}
+library(tidyverse)
+```
+
+```{r read-data}
+Sections <- read_csv("./FrostData/songSections.csv")
+Attributes <- read_csv("./FrostData/songAttributes.csv")
+Streams <- read_csv("./FrostData/spotifyStreams.csv")
+Certs <- read_csv("./FrostData/RIAACertifications.csv")
+Info <- read_csv("./FrostData/artistInfo.csv")
+Billboard <- read_csv("./FrostData/billboardRankings.csv")
+Grammy <- read_csv("./FrostData/grammyWinners.csv")
+
+
+```
+
+Has Artist and Title:  
+* Sections: Artist, Song
+* Attributes:  Arist, Track
+* Streams: Artist, `Track Name`
+* Certs: Artist, Title
+* Billboard: Artists, Name
+* Grammy: Artist, SongTitle
+
+We will use Info as the baseline list to match to.  (Probably NOT the best choice...)
+
+
+```{r}
+all_songs <- data.frame(
+  Artist_String = c(Sections$Artist, Attributes$Artist, Streams$Artist, Certs$Artist, Billboard$Artists, Grammy$Artist),
+  Track_String = c(Sections$Song, Attributes$Track, Streams$`Track Name`, Certs$Title, Billboard$Name, Grammy$SongTitle)
+) %>% 
+  distinct()
+
+good_artist_names <- unique(Billboard$Artists)
+good_track_names <- unique(Billboard$Name)
+
+all_artists <- all_songs %>% 
+  select(Artist_String) %>%
+  distinct() %>%
+  mutate(
+    Closest_Match = map(Artist_String, ~good_artist_names[which.min(stringdist(.x, good_artist_names))]),
+    Match_Distance = map(Artist_String, ~min(stringdist(.x, good_artist_names)))
+  )
+
+all_tracks <- all_songs %>% 
+  select(Track_String) %>%
+  distinct() %>%
+  mutate(
+    Closest_Match = map(Track_String, ~good_track_names[which.min(stringdist(.x, good_track_names))]),
+    Match_Distance = map(Track_String, ~min(stringdist(.x, good_track_names)))
+  )
+
+## these take some time to run, we should write them to a data file when we are happy with them.
+
+```
+

@@ -1,0 +1,405 @@
+---
+title: "Frost 2019 Music Industry Analysis"
+author: "Daniel DeFoe"
+output: html_notebook
+---
+```{r}
+library(tidyverse)
+library(tidytext)
+```
+
+Measure an artist's character with...
+ -Lyrical complexity
+ -Musical complextiy
+ -Genre Bleed (shifting genres or integrating multiple genres)
+ -Number of writers (perhaps number of writers who aren't the artist)
+ -Label
+
+There will be more in depth analysis of archetype artists (chord data), but spotify music data is available for all artists. 
+
+
+
+IS THIS CORRECT TO SAY?????
+The units of the study will be artists, as they will be who are tracked over time. Aside from this though, it will be useful to track the popular music landscape as a way of explaining character change over time. This will involve tracking the most popular genres over time by seeing the genere distribution on  the Billboard Hot 100, the top Spotify Streams, and the accolades given by the Grammy Awards. 
+
+## Plan of Analysis
+This is the roadmap of how the data will be analyzed. 
+1. All valid artists
+  a. Global music landscape 
+    -Distribution of genre over the Billboard Hot 100 and Spotify most streamed
+    -Get the genre from the non-genre specific Grammy awards
+  b. Artist character change over time 
+    -Number of songwriters an artist works with over time
+    -Trends of song meta-data over time
+    -Lyric complexity over time
+2. Archetype artists
+
+## Load in Data + Some Pre-Processing
+```{r}
+library(tools)
+library(stringr)
+billboardDf = read.csv("FrostData/billboardRankings.csv")
+spotifyDf = read.csv("FrostData/spotifyStreams.csv")
+riaaDf = read.csv("FrostData/RIAACertifications.csv")
+grammyDf = read.csv("FrostData/grammyWinners.csv")
+songSecsDf = read.csv("FrostData/songSections.csv")
+songAttrsDf = read.csv("FrostData/songAttributes.csv")
+
+```
+
+
+<<<<<<< HEAD
+
+=======
+>>>>>>> Recovered changes, popularity metrics, lyrical complexity start
+Rename columns
+```{r}
+colnames(billboardDf)[colnames(billboardDf) == "Weekly.rank"] = "BillboardWeekRank"
+colnames(billboardDf)[colnames(billboardDf) == "Peak.position"] = "PeakPosBillboard"
+colnames(billboardDf)[colnames(billboardDf) == "Weeks.on.chart"] = "WeeksOnBillboard"
+colnames(billboardDf)[colnames(billboardDf) == "Date"] = "ReleaseDate"
+colnames(billboardDf)[colnames(billboardDf) == "Writing.Credits"] = "WritingCredits"
+colnames(spotifyDf)[colnames(spotifyDf) == "Track.Name"] = "Name"
+colnames(spotifyDf)[colnames(spotifyDf) == "Position"] = "SpotifyWeekPosition"
+colnames(riaaDf)[colnames(riaaDf) == "Status"] = "RiaaStatus"
+colnames(riaaDf)[colnames(riaaDf) == "Title"] = "Name"
+colnames(grammyDf)[colnames(grammyDf) == "Award"] = "GrammyAward"
+colnames(grammyDf)[colnames(grammyDf) == "SongTitle"] = "Name"
+colnames(songSecsDf)[colnames(songSecsDf) == "Song"] = "Name"
+colnames(songAttrsDf)[colnames(songAttrsDf) == "Track"] = "Name"
+```
+
+
+
+```{r}
+riaaSuffixStrip = function(title){
+  new = gsub("\\(Feat.*", "", title)
+  return(new)
+}
+
+spotifySuffixStrip = function(title){#this needs fix
+  new = title %>% 
+    sub(" - Remastered", "", .) %>%
+    sub(" - Radio Edit", "", .)%>%
+    sub(" - From.*", "", .) %>%
+    sub(" - Official.*", "", .) 
+  
+  return(new)
+}
+
+stringColStandardizer = function(oldText){
+  newText = oldText %>%
+    as.character(.)%>%
+    tolower(.) %>%
+    toTitleCase(.) %>%
+    trimws(.)
+  
+  return(newText)
+}
+```
+DEAL WITH REMIX
+
+
+
+```{r}
+billboardDf[c(2,3,9,10, 12)] = lapply(billboardDf[c(2,3,9,10, 12)], stringColStandardizer) #not lyrics
+<<<<<<< HEAD
+
+spotifyDf[c(2, 3, 4)] = lapply(spotifyDf[c(2, 3, 4)], stringColStandardizer)
+spotifyDf[2] = lapply(spotifyDf[2], spotifySuffixStrip)
+
+=======
+
+spotifyDf[c(2, 3, 4)] = lapply(spotifyDf[c(2, 3, 4)], stringColStandardizer)
+spotifyDf[2] = lapply(spotifyDf[2], spotifySuffixStrip)
+
+>>>>>>> Recovered changes, popularity metrics, lyrical complexity start
+grammyDf[c(5, 6)] = lapply(grammyDf[c(5, 6)],stringColStandardizer)
+
+songSecsDf[c(3, 4)] = lapply(songSecsDf[c(3, 4)], stringColStandardizer)
+
+<<<<<<< HEAD
+songSecsDf[c(5, 6, 7)] = lapply(songSecsDf[c(5, 6, 7)],as.character)
+
+=======
+>>>>>>> Recovered changes, popularity metrics, lyrical complexity start
+songAttrsDf[c(3, 4, 13)] = lapply(songAttrsDf[c(3, 4, 13)], stringColStandardizer)
+
+riaaDf[c(2,3,5)]=lapply(riaaDf[c(2,3,5)],stringColStandardizer)
+riaaDf[c(2)]=lapply(riaaDf[c(2)],riaaSuffixStrip)
+```
+
+
+## All Valid Artists
+As a note*** It will likely be wise to group by artist and some metric time (either just year, month, or full date) to get the picture when it comes to an artist's character over time. 
+
+# Global Music Landscape
+
+Let's create a count of all writers on a song. 
+**NOTE OF A PROBLEM: if we end up excluding writers who are not the artist themselves, will need to do some work to handle bands/groups 
+```{r}
+billboardDf = billboardDf %>%
+  mutate(numWriters = (str_count(WritingCredits, ",")+1)) %>%
+  mutate(numArtists =(str_count(Artists, ",")+1))
+
+(billboardDf)
+```
+As a way of tracking an artist's popularity, seeing how many songs an artist has on the chart in any given week can be useful.
+```{r}
+artists = unique(unlist(strsplit(as.character(billboardDf$Artists), ", ")))
+length(artists)
+#THIS IS THE LIST OF UNIQUE ARTISTS, MAY NOT NEED
+```
+
+```{r} 
+####CHECK THIS!!
+separate_rows(billboardDf, Artists, sep = ", ")
+chartedSongs = billboardDf %>% 
+  separate_rows(., Artists, sep = ", ") %>%
+  aggregate(Artists ~ (Artist = Artists) + Week, data = ., FUN = length)
+
+```
+
+
+For Spotify streams, the sum of streams grouped by artist, year, and month can serve as a measure of the artist's change in popularity.
+```{r}
+spotifyDfNew = separate(spotifyDf, col= Week, into= c("Year", "Month", "Day"), sep ="-")
+billboardDfNew = separate(billboardDf, col= Week, into= c("Year", "Month", "Day"), sep ="-")
+
+monthlyArtistStreams = aggregate(x = spotifyDfNew["Streams"], by = list(Artist = spotifyDfNew$Artist, Year = spotifyDfNew$Year, Month = spotifyDfNew$Month), FUN = sum)
+monthlyArtistStreams =as.data.frame.matrix(monthlyArtistStreams)
+
+spotifyDfNew[,c(8)] = sapply(spotifyDfNew[,c(8)], as.numeric)
+billboardDfNew[,c(9)] = sapply(billboardDfNew[,c(9)], as.numeric)
+
+spotifyDfNew = spotifyDfNew %>%
+  mutate(Week = (Day %/% 7) +1)
+
+spotifyDfNew = spotifyDfNew[!grepl("- Remix", spotifyDfNew$Name),]
+
+billboardDfNew = billboardDfNew %>%
+  mutate(Week = (Day %/% 7) +1)
+
+billboardDfNew$PeakPosBillboard[is.na(billboardDfNew$PeakPosBillboard)] = billboardDfNew$BillboardWeekRank[is.na(billboardDfNew$PeakPosBillboard)]
+
+billboardDfNew$WeeksOnBillboard[is.na(billboardDfNew$WeeksOnBillboard)] = 0
+```
+
+
+
+## Join all Data for an Artist
+```{r}
+library(data.table)
+library(plyr)
+
+artistDataJoiner = function(artist){
+  drops = c("X", "Day", "Artists", "Artist")
+  billboardSub = billboardDfNew[billboardDfNew$Artists %like% artist, ]
+  spotifySub = spotifyDfNew[spotifyDfNew$Artist %like% artist,]
+  spotifySub = spotifySub[ , !(names(spotifySub)) %in% drops]
+  billboardSub = billboardSub[ , !(names(billboardSub)) %in% drops]
+  new1 = join_all(list(billboardSub, spotifySub), by = c("Name","Features" ,"Year", "Month", "Week"), type = "full")
+  riaaSub = riaaDf[riaaDf$Artist %like% artist,]
+  grammySub = grammyDf[grammyDf$Artist %like% artist,]
+<<<<<<< HEAD
+  songAttrsSub = songAttrsDf[songAttrsDf$Artist %like% artist,] %>%
+    mutate(DurationInSecs = Duration/1000) %>%
+    select(-c("Duration"))
+=======
+  songAttrsSub = songAttrsDf[songAttrsDf$Artist %like% artist,]
+>>>>>>> Recovered changes, popularity metrics, lyrical complexity start
+  songSecsSub = songSecsDf[songSecsDf$Artist %like% artist,]
+  riaaSub = riaaSub[ , !(names(riaaSub)) %in% drops]
+  grammySub =grammySub[ , !(names(grammySub)) %in% drops]
+  songAttrsSub = songAttrsSub[ , !(names(songAttrsSub)) %in% drops]
+  songSecsSub =songSecsSub[ , !(names(songSecsSub)) %in% drops]
+  print(songSecsSub)
+  new2 = join_all(list(new1, riaaSub, grammySub, songAttrsSub, songSecsSub), by = "Name", type = "full") #add songSecsSub later
+  return(new2)
+}
+archArtist = artistDataJoiner("Maroon 5")
+archArtist
+```
+
+
+# Creation of Popularity, OutsideInfluence, and Originality
+There will be 3 popularity metrics, and we can compare how different songs perform under each of them
+```{r}
+validAlbums = c("Red Pill Blues (Deluxe)", "v (Deluxe)", "	Overexposed Track by Track", "Hands all over (Deluxe)", "it Won't be Soon Before Long.", "Songs About Jane")
+
+archArtist = filter(archArtist, Album %in% validAlbums)
+```
+
+pop1 = sum(1/current * weeks)
+pop2 = sum(1/current)
+pop3 = ln(101.1- peak)
+
+```{r}
+pop1Calc = function(df){
+  ret = sum(df$WeeksOnBillboard/df$BillboardWeekRank, na.rm = TRUE)
+  return(ret)
+}
+pop2Calc = function(df){ 
+  ret = sum(1/df$BillboardWeekRank, na.rm = TRUE)
+  return(ret)
+}
+
+pop3Calc = function(df){
+  ret =log(101.1 - min(df$PeakPosBillboard, na.rm = TRUE))
+  if (is.nan(ret)){
+    ret =0
+  }
+  return(ret)
+}
+
+archArtistPop = archArtist %>%
+  select(Name, BillboardWeekRank, WeeksOnBillboard, PeakPosBillboard) %>%
+  distinct() %>%
+  group_by(Name) %>%
+  do(data.frame(pop1=pop1Calc(.), pop2 = pop2Calc(.), pop3 = pop3Calc(.)))
+archArtistPop
+```
+
+Outside Influence
+```{r}
+bandMembers= c("Adam Levine", "	Jesse Carmichael", "Mickey Madden", "James Valentine", "Matt Flynn", "	PJ Morton", "Sam Farrar", "Ryan Dusick")
+
+countNonBandWriters = function(df){
+  writers = str_split(df$WritingCredits, ", ")
+  nonBandWriters =writers[!writers %in% bandMembers]
+  return(nonBandWriters)
+}
+
+archArtistInfluence = archArtist %>%
+  group_by(Name) %>%
+  do(data.frame(countNonBandWriters(.)))
+  
+archArtistInfluence
+```
+
+# Complexity-Lyrical, Track, Musical
+```{r}
+noContraction = function(lyrics){
+  new = lyrics %>% 
+    gsub("can't", "cannot", .) %>% #special n't
+    gsub("couldn't've", "could not have", .) %>%
+    gsub("mustn't've", "must not have", .) %>%
+    gsub("who'd've", "who would have", .) %>%
+    gsub("why'd", "why did", .) %>%
+    gsub("n't", " not", .) %>%
+    gsub("'ll", " will", .) %>% 
+    gsub("'d", " would", .) %>% 
+    gsub("n't", " not", .) %>%
+    gsub("'ve", " have", .) %>%
+    gsub("'re", " are", .) %>%
+    gsub("'cause", "because", .) %>%
+    gsub("there's", "there is", .) %>% 
+    gsub("everyone's", "everyone is", .) %>% 
+    gsub("she's", "she is", .) %>%
+    gsub("he's", "he is", .) %>%
+    gsub("it's", "it is", .) %>%
+    gsub("let's", "let us", .) %>%
+    gsub("how's", "how is", .) %>%
+    gsub("somebody's", "somebody is", .) %>%
+    gsub("someone's", "someone is", .) %>%
+    gsub("something's", "something is", .) %>%
+    gsub("that's", "that is", .) %>%
+    gsub("there's", "there is", .) %>%
+    gsub("what's", "what is", .) %>%
+    gsub("when's", "when is", .) %>%
+    gsub("where's", "where is", .) %>%
+    gsub("who's", "who is", .) %>%
+    gsub("gonna", "going to", .) %>% 
+    gsub("gotta", "got to", .) %>% 
+    gsub("gimme", "give me", .)%>% 
+    gsub("tryna", "trying to", .) %>%
+    gsub("i'm'a", "i am about to", .)%>% 
+    gsub("i'm", "i am", .) %>%
+    gsub("gimme", "give me", .) %>%
+    gsub("y'all", "you all", .)
+  return(new)
+}
+
+individualLyric = function(df){
+  newDf = df %>% 
+  unnest_tokens(word, Lyrics) %>%
+  anti_join(stop_words) %>%
+  distinct()
+  return(newDf)
+}
+
+lyricalComplexity = function(df){
+  lyricsDf = df %>%
+    select(Name, Lyrics) %>%
+    distinct() %>% #now have the lyrics of all of the songs 
+    mutate(Lyrics = tolower(Lyrics)) %>% #Get all lyrics to be lower case
+    mutate(Lyrics = noContraction(Lyrics)) %>% #There are now no contractions besides possessives
+    #mutate(unlist(str_split(Lyrics, "\n", n = 1))) %>% ##############NEEED TO BE ABLE TO STRIP THE TITLE
+    mutate(Lyrics = gsub("[^a-z ]", " ", Lyrics)) #Remove what is not an english letter
+    
+  individual = individualLyric(lyricsDf)
+  
+  fullLyrics = individual %>%
+    group_by(Name) %>%
+    tally(name = "uniqueNonStop")
+  
+  totalLyrics = lyricsDf %>%
+    unnest_tokens(word, Lyrics) %>%
+    group_by(Name) %>% 
+    tally(name = "totalWords")
+<<<<<<< HEAD
+
+=======
+  
+>>>>>>> Recovered changes, popularity metrics, lyrical complexity start
+  avgLen = individual %>%
+    group_by(Name) %>%
+    distinct() %>%
+    mutate(wordLength = nchar(word))%>%
+    select(Name, wordLength) %>%
+    ddply(.,~Name, summarize, avgWordLen = mean(wordLength, na.rm = TRUE))
+  
+<<<<<<< HEAD
+  #Get the total words by the duration 
+  wordsByTime = archArtist %>%
+    select(Name, DurationInSecs) %>%
+    distinct() %>%
+    full_join(totalLyrics, by = "Name") %>%
+    mutate(wordsPerSec = totalWords/DurationInSecs) %>%
+    select(Name, wordsPerSec)
+  print(wordsByTime)
+  
+  
+  
+  new3 = join_all(list(fullLyrics, totalLyrics, avgLen, wordsByTime), by = "Name")
+=======
+  
+  new3 = join_all(list(fullLyrics, totalLyrics, avgLen), by = "Name")
+>>>>>>> Recovered changes, popularity metrics, lyrical complexity start
+  new3$TotalToUniqueRatio = new3$totalWords/new3$uniqueNonStop
+  
+  
+  
+  return(new3)
+  
+  ddply(d, .(Name), summarize,  Rate1=mean(Rate1), Rate2=mean(Rate2))
+}
+
+lyricalComplexity(archArtist)
+```
+This is now a tidy format of the lyric data
+
+
+This is now a tidy format of the lyric data
+
+<<<<<<< HEAD
+Musical Complexity
+```{r}
+musicComplexity = archArtist %>%
+  select(Name, Section, Progression,EndDifferent)%>%
+  
+```
+
+=======
+>>>>>>> Recovered changes, popularity metrics, lyrical complexity start
+
