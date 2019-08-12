@@ -1,7 +1,9 @@
 ---
 title: "Frost 2019 Music Industry Analysis"
 author: "Daniel DeFoe"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 ```{r}
 library(tidyverse)
