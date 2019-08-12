@@ -8,6 +8,9 @@ output:
 ```{r}
 library(tidyverse)
 library(tidytext)
+
+## Knitr options
+#source("functions.R")
 ```
 
 Measure an artist's character with...
@@ -284,7 +287,10 @@ getPopularityMetric = function(df){
 }
 archArtistPop = getPopularityMetric(archArtist)
 archArtistPop
+
+#write_csv(archArtistPop, "maroon5_pop.csv")
 ```
+
 ```{r}
 test = artistDataJoiner("Twenty One Pilots")
 unique(test$Album)
@@ -331,6 +337,8 @@ getOutsideInfluenceScore = function(df, bandMembers){
   
 archArtistInfluence = getOutsideInfluenceScore(archArtist, maroon5Members)
 archArtistInfluence
+
+#ggplot(archArtistInfluence, aes(x = ReleaseDate, y = nonBandMemberWriters)) + geom_point()
 ```
 
 
@@ -378,6 +386,8 @@ noContraction = function(lyrics){
     gsub("y'all", "you all", .)
   return(new)
 }
+
+# str_replace("Hi Daniel", list(a= "x", i =  "z")) ## doesn't work
 
 individualLyric = function(df){
   newDf = df %>% 
@@ -434,7 +444,6 @@ getLyricalComplexity = function(df){
 
   new3$UniqueToTotalRatio = new3$uniqueNonStop/new3$totalWords
   full = new3[complete.cases(new3), ] 
-
   
   full[c(2,3,4,5,6,7)] = sapply(full[c( 2,3,4,5,6,7)],scale)
   
@@ -456,6 +465,10 @@ getLyricalComplexity = function(df){
 
 lyricalComplexDf = getLyricalComplexity(archArtist)
 lyricalComplexDf
+
+
+
+ggplot(lyricalComplexDf, aes(x = ReleaseDate, y = lyricalComplexity)) + geom_point() + geom_smooth(method = "lm")
 ```
 
 #Measure of Musical Complexity
@@ -515,6 +528,8 @@ getMusicComplexity = function(df){
 
 musicComplexDf = getMusicComplexity(archArtist)
 musicComplexDf
+
+ggplot(musicComplexDf, aes(x = ReleaseDate, y = musicalComplexity)) + geom_point() + geom_smooth(method = "lm")
 ```
 
 Now all of the smaller metric datasets will be joined.
@@ -526,6 +541,11 @@ fullMetricsDataSet = function(popScores, origScores, lyricComp, musicComp){
 }
 artistMetricDf = fullMetricsDataSet(archArtistPop, archArtistInfluence, lyricalComplexDf, musicComplexDf)
 artistMetricDf
+
+artistMetricDf %>%
+  select(Name, pop1, pop2, pop3, pop4) %>%
+  gather(key = "Metric", value = "Score", -Name) %>%
+  ggplot(aes(x = Name, y = Score, fill = Metric)) + geom_col(position = "dodge")
 ```
 
 
