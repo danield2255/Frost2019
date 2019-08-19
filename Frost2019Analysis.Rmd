@@ -5,227 +5,56 @@ output:
   html_document:
     df_print: paged
 ---
-```{r}
+
+## Introduction 
+To answer the research question of “What is the effect over time of music industry influence on musical artists, in terms of musical content?” measures of popularity, complexity, and outside influence to an artist should be measured over time. These measures are subjective, but justifiable and based in reason from the data. Each created metric will be made for each song of a specific case study artist for which there is valid data. Ultimately the goal will be to compare each of these metrics for all of a case study artsit's songs which charted at some point on the Billboard Hot 100 and plot each of these against the song's release date.
+
+Popularity will be measured using the data on a song's life and behavior when it was on the Billboard Hot 100. Multiple metrics will be proposed and compared. The complexity of a song will be measured by combining musical complexity (if there exists data on it) and lyrical complexity. Finally outside influence will be measured primarily by the number of writers on the song who were non-band members. 
+
+All the functions will be defined in a separate source file, and then called in this file. All of the data used here should have already been preprocessed in a previous file. 
+```{r, message=FALSE}
+options(kableExtra.auto_format = FALSE)
+library(htmltools)
 library(tidyverse)
 library(tidytext)
+library(data.table)
+library(plyr)
+library(quanteda)
+library(kableExtra)
+library(knitr)
+library(gridExtra)
+library(formattable)
 
-## Knitr options
-#source("functions.R")
+source("frostFunctions.R")
 ```
 
-Measure an artist's character with...
- -Lyrical complexity
- -Musical complextiy
- -Genre Bleed (shifting genres or integrating multiple genres)
- -Number of writers (perhaps number of writers who aren't the artist)
- -Label
-
-There will be more in depth analysis of archetype artists (chord data), but spotify music data is available for all artists. 
-
-
-
-IS THIS CORRECT TO SAY?????
-The units of the study will be artists, as they will be who are tracked over time. Aside from this though, it will be useful to track the popular music landscape as a way of explaining character change over time. This will involve tracking the most popular genres over time by seeing the genere distribution on  the Billboard Hot 100, the top Spotify Streams, and the accolades given by the Grammy Awards. 
-
-## Plan of Analysis
-This is the roadmap of how the data will be analyzed. 
-1. All valid artists
-  a. Global music landscape 
-    -Distribution of genre over the Billboard Hot 100 and Spotify most streamed
-    -Get the genre from the non-genre specific Grammy awards
-  b. Artist character change over time 
-    -Number of songwriters an artist works with over time
-    -Trends of song meta-data over time
-    -Lyric complexity over time
-2. Archetype artists
-
-## Load in Data + Some Pre-Processing
-```{r}
-library(tools)
-library(stringr)
-billboardDf = read.csv("FrostData/billboardRankings.csv")
-spotifyDf = read.csv("FrostData/spotifyStreams.csv")
-riaaDf = read.csv("FrostData/RIAACertifications.csv")
-grammyDf = read.csv("FrostData/grammyWinners.csv")
-songSecsDf = read.csv("FrostData/songSections.csv")
-songAttrsDf = read.csv("FrostData/songAttributes.csv")
-
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
-
-```{r}
-colnames(billboardDf)[colnames(billboardDf) == "Weekly.rank"] = "BillboardWeekRank"
-colnames(billboardDf)[colnames(billboardDf) == "Peak.position"] = "PeakPosBillboard"
-colnames(billboardDf)[colnames(billboardDf) == "Weeks.on.chart"] = "WeeksOnBillboard"
-colnames(billboardDf)[colnames(billboardDf) == "Date"] = "ReleaseDate"
-colnames(billboardDf)[colnames(billboardDf) == "Writing.Credits"] = "WritingCredits"
-colnames(spotifyDf)[colnames(spotifyDf) == "Track.Name"] = "Name"
-colnames(spotifyDf)[colnames(spotifyDf) == "Position"] = "SpotifyWeekPosition"
-colnames(riaaDf)[colnames(riaaDf) == "Status"] = "RiaaStatus"
-colnames(riaaDf)[colnames(riaaDf) == "Title"] = "Name"
-colnames(grammyDf)[colnames(grammyDf) == "Award"] = "GrammyAward"
-colnames(grammyDf)[colnames(grammyDf) == "SongTitle"] = "Name"
-colnames(songSecsDf)[colnames(songSecsDf) == "Song"] = "Name"
-colnames(songAttrsDf)[colnames(songAttrsDf) == "Track"] = "Name"
+```{r, message= FALSE, warning=FALSE}
+billboardDf = read_csv("FrostData/billboardDataClean.csv", col_types = cols())
+spotifyDf = read_csv("FrostData/spotifyDataClean.csv", col_types = cols())
+riaaDf = read_csv("FrostData/riaaDataClean.csv", col_types = cols())
+grammyDf = read_csv("FrostData/grammyDataClean.csv", col_types = cols())
+songSecsDf = read_csv("FrostData/songSectionDataClean.csv", col_types = cols())
+songAttrsDf = read_csv("FrostData/songAttrsDataClean.csv", col_types = cols())
 ```
-
-
-
-```{r}
-riaaSuffixStrip = function(title){
-  new = gsub("\\(Feat.*", "", title)
-  return(new)
-}
-
-spotifySuffixStrip = function(title){#this needs fix
-  new = title %>% 
-    sub(" - Remastered", "", .) %>%
-    #sub(" - Radio Edit", "", .)%>%
-    sub(" - From.*", "", .) %>%
-    sub(" - Official.*", "", .) 
-  
-  return(new)
-}
-
-stringColStandardizer = function(oldText){
-  newText = oldText %>%
-    as.character(.)%>%
-    tolower(.) %>%
-    toTitleCase(.) %>%
-    trimws(.)
-  
-  return(newText)
-}
-```
-DEAL WITH REMIX
-
-
-
-```{r}
-billboardDf[c(2,3,9,10, 12)] = lapply(billboardDf[c(2,3,9,10, 12)], stringColStandardizer) #not lyrics
-billboardDf$ReleaseDate = as.Date(billboardDf$ReleaseDate, format = "%B %d, %Y")
-
-spotifyDf[c(2, 3, 4)] = lapply(spotifyDf[c(2, 3, 4)], stringColStandardizer)
-spotifyDf[2] = lapply(spotifyDf[2], spotifySuffixStrip)
-
-
-spotifyDf[c(2, 3, 4)] = lapply(spotifyDf[c(2, 3, 4)], stringColStandardizer)
-spotifyDf[2] = lapply(spotifyDf[2], spotifySuffixStrip)
-
-
-grammyDf[c(5, 6)] = lapply(grammyDf[c(5, 6)],stringColStandardizer)
-
-songSecsDf[c(3, 4)] = lapply(songSecsDf[c(3, 4)], stringColStandardizer)
-
-songSecsDf[c(5, 6, 7)] = lapply(songSecsDf[c(5, 6, 7)],as.character)
-
-
-songAttrsDf[c(3, 4, 13)] = lapply(songAttrsDf[c(3, 4, 13)], stringColStandardizer)
-
-riaaDf[c(2,3,5)]=lapply(riaaDf[c(2,3,5)],stringColStandardizer)
-riaaDf[c(2)]=lapply(riaaDf[c(2)],riaaSuffixStrip)
-```
-
-
-## All Valid Artists
-As a note*** It will likely be wise to group by artist and some metric time (either just year, month, or full date) to get the picture when it comes to an artist's character over time. 
-
-# Global Music Landscape
-
-Let's create a count of all writers on a song. 
-**NOTE OF A PROBLEM: if we end up excluding writers who are not the artist themselves, will need to do some work to handle bands/groups 
-```{r}
-billboardDf = billboardDf %>%
-  mutate(numWriters = (str_count(WritingCredits, ",")+1)) %>%
-  mutate(numArtists =(str_count(Artists, ",")+1))
-
-(billboardDf)
-```
-
-As a way of tracking an artist's popularity, seeing how many songs an artist has on the chart in any given week can be useful.
-```{r}
-artists = unique(unlist(strsplit(as.character(billboardDf$Artists), ", ")))
-length(artists)
-#THIS IS THE LIST OF UNIQUE ARTISTS, MAY NOT NEED
-```
-
-```{r} 
-####CHECK THIS!!
-separate_rows(billboardDf, Artists, sep = ", ")
-chartedSongs = billboardDf %>% 
-  separate_rows(., Artists, sep = ", ") %>%
-  aggregate(Artists ~ (Artist = Artists) + Week, data = ., FUN = length)
-
-```
-
-
-For Spotify streams, the sum of streams grouped by artist, year, and month can serve as a measure of the artist's change in popularity.
-```{r}
-spotifyDfNew = separate(spotifyDf, col= Week, into= c("Year", "Month", "Day"), sep ="-")
-billboardDfNew = separate(billboardDf, col= Week, into= c("Year", "Month", "Day"), sep ="-")
-
-monthlyArtistStreams = aggregate(x = spotifyDfNew["Streams"], by = list(Artist = spotifyDfNew$Artist, Year = spotifyDfNew$Year, Month = spotifyDfNew$Month), FUN = sum)
-monthlyArtistStreams =as.data.frame.matrix(monthlyArtistStreams)
-
-spotifyDfNew[,c(8)] = sapply(spotifyDfNew[,c(8)], as.numeric)
-billboardDfNew[,c(9)] = sapply(billboardDfNew[,c(9)], as.numeric)
-
-spotifyDfNew = spotifyDfNew %>%
-  mutate(Week = (Day %/% 7) +1)
-
-spotifyDfNew = spotifyDfNew[!grepl("- Remix", spotifyDfNew$Name),]
-
-billboardDfNew = billboardDfNew %>%
-  mutate(Week = (Day %/% 7) +1)
-
-billboardDfNew$PeakPosBillboard[is.na(billboardDfNew$PeakPosBillboard)] = billboardDfNew$BillboardWeekRank[is.na(billboardDfNew$PeakPosBillboard)]
-
-billboardDfNew$WeeksOnBillboard[is.na(billboardDfNew$WeeksOnBillboard)] = 0
-```
-
 
 
 ## Join all Data for an Artist
 Here the functionality will be built to join all data on a chosen artist. For the examples to follow, the band "Maroon 5" will be used. 
 ```{r}
-library(data.table)
-library(plyr)
-
-artistDataJoiner = function(artist){
-  drops = c("X", "Day", "Artists", "Artist", "Unnamed..0")
-  billboardSub = billboardDfNew[billboardDfNew$Artists %like% artist, ]
-  spotifySub = spotifyDfNew[spotifyDfNew$Artist %like% artist,]
-  spotifySub = spotifySub[ , !(names(spotifySub)) %in% drops]
-  billboardSub = billboardSub[ , !(names(billboardSub)) %in% drops]
-  new1 = join_all(list(billboardSub, spotifySub), by = c("Name","Features" ,"Year", "Month", "Week"), type = "full")
-  riaaSub = riaaDf[riaaDf$Artist %like% artist,]
-  grammySub = grammyDf[grammyDf$Artist %like% artist,]
-
-  songAttrsSub = songAttrsDf[songAttrsDf$Artist %like% artist,] %>%
-    mutate(DurationInSecs = Duration/1000) %>%
-    select(-c("Duration"))
-
-  songSecsSub = songSecsDf[songSecsDf$Artist %like% artist,]
-  riaaSub = riaaSub[ , !(names(riaaSub)) %in% drops]
-  grammySub =grammySub[ , !(names(grammySub)) %in% drops]
-  songAttrsSub = songAttrsSub[ , !(names(songAttrsSub)) %in% drops]
-  songSecsSub =songSecsSub[ , !(names(songSecsSub)) %in% drops]
-
-  new2 = join_all(list(new1, riaaSub, grammySub, songAttrsSub, songSecsSub), by = "Name", type = "full") #add songSecsSub later
-  return(new2)
-}
 archArtist = artistDataJoiner("Maroon 5")
-validAlbums = c("Red Pill Blues (Deluxe)", "v (Deluxe)", "	Overexposed Track by Track", "Hands all over (Deluxe)", "it Won't be Soon Before Long.", "Songs About Jane")
+validAlbums = c("Red Pill Blues + (Deluxe)", "v (Deluxe)", "	Overexposed Track by Track", "Hands all over (Deluxe)", "it Won't be Soon Before Long.", "Songs About Jane")
 
 archArtist = filter(archArtist, Album %in% validAlbums)
-archArtist
+#archArtist
 ```
 
 
 
-#Measure of Popularity
-
+## Measure of Popularity
 Quantifying popularity will be an done in multiple ways to account for imperfections about each metric. There will be multiple popularity metrics, and they can be compared and contrasted across songs. They are as follows:
 pop1 = sum(1/current * weeks)
 pop2 = sum(1/current)
@@ -234,396 +63,161 @@ pop4 = mean(ln(101.1 - current))
 
 Pop1 is a metric which rewards songs which reach their peak on the charts later in their lifetime on the charts so due to this it discrimates against tracks which peak right away and disipate quickly. Pop2 is a metric which does not have an appropriate scale, as having the 2nd spot on the Hot 100 is half as valuable as the number 1 spot. Pop3 only considers the peak position on the chart, but does scale it more appropriately than the first 2. Pop4 uses the natural log scale to more appropriately consider differences in chart position, and takes the mean of all the log chart positions to account for both longevity and position.
 
-```{r}
-pop1Calc = function(df){
-  ret = sum(df$WeeksOnBillboard/df$BillboardWeekRank, na.rm = TRUE)
-  return(ret)
-}
-pop2Calc = function(df){ 
-  ret = sum(1/df$BillboardWeekRank, na.rm = TRUE)
-  return(ret)
-}
-
-pop3Calc = function(df){
-  ret =log(101.1 - min(df$PeakPosBillboard, na.rm = TRUE))
-  if (is.nan(ret)){
-    ret = NA
-  }
-  return(ret)
-}
-
-pop4Calc1 = function(val){
-  if (!is.na(val)){
-    ret = log(101.1- val)
-  }else{
-    ret = val
-  }
-  return(ret)
-}
-
-pop4Calc2 = function(df){
-  vals = sapply(df$BillboardWeekRank, pop4Calc1)
-  return(mean(vals, na.rm = TRUE))
-}
-
-getPopularityMetric = function(df){
-  new1 = df %>%
-  select(Name, BillboardWeekRank, WeeksOnBillboard, PeakPosBillboard) %>%
-  distinct() %>%
-  group_by(Name) %>%
-  do(data.frame( pop1=pop1Calc(.), pop2 = pop2Calc(.), pop3 = pop3Calc(.), pop4 = pop4Calc2(.))) %>%
-  distinct()
-  
-  new2 = df %>%
-    select(Name, ReleaseDate) %>%
-    distinct()
-  
-  new = merge(new1, new2, by="Name", type= "full")
-  
-  new = new[complete.cases(new), ] %>%
-    distinct() %>%
-    arrange(desc(ReleaseDate))
-  return(new)
-}
+```{r, warning=FALSE}
 archArtistPop = getPopularityMetric(archArtist)
-archArtistPop
+#archArtistPop
 
-#write_csv(archArtistPop, "maroon5_pop.csv")
+ggplot(archArtistPop, aes(x = ReleaseDate, y = pop1)) + geom_point() + geom_smooth(method = "lm") + labs(title = "Pop1 of Maroon 5 Songs By Release Date")
+
+ggplot(archArtistPop, aes(x = ReleaseDate, y = pop2)) + geom_point() + geom_smooth(method = "lm") + labs(title = "Pop2 of Maroon 5 Songs By Release Date")
+
+ggplot(archArtistPop, aes(x = ReleaseDate, y = pop3)) + geom_point() + geom_smooth(method = "lm") + labs(title = "Pop3 of Maroon 5 Songs By Release Date")
+
+ggplot(archArtistPop, aes(x = ReleaseDate, y = pop4)) + geom_point() + geom_smooth(method = "lm") + labs(title = "Pop4 of Maroon 5 Songs By Release Date")
+
+write_csv(archArtistPop, "maroon5_pop.csv")
 ```
 
-```{r}
-test = artistDataJoiner("Twenty One Pilots")
-unique(test$Album)
-test
-```
+By each popularity metric made, there is indication of a slight increase in the level of popularity in the Maroon 5's charting songs as time increases. In pop1 and pop2, a high leverage point likely has some influence on the exact slope of the best fit line.
 
-
-#Measure Outside Influence
+## Measure Outside Influence
 To consider how much outside of influence was given in the creation of a song, counting the number of writers of the song who are not the artist themselves. 
-```{r}
+```{r, warning=FALSE}
 maroon5Members= c("Adam Levine", "Jesse Carmichael", "Mickey Madden", "James Valentine", "Matt Flynn", "PJ Morton", "Sam Farrar", "Ryan Dusick")
 
-countNonBandWriters = function(df, bandMembers){
-  if (is.na(df$WritingCredits)){
-    nonBandWriters = NA
-  } else{
-    writers = str_split(df$WritingCredits, ", ") %>% 
-    unlist()
-  nonBandWriters = sum(!writers %in% bandMembers)
-  }
-  return(nonBandWriters)
-}
-
-getOutsideInfluenceScore = function(df, bandMembers){
-  new1 = df %>%
-  select(Name, WritingCredits) %>%
-  distinct() %>%
-  group_by(Name) %>%
-  do(data.frame(nonBandMemberWriters = countNonBandWriters(., bandMembers))) %>%
-  distinct()
-  
-  new2 = df %>%
-    select(Name, ReleaseDate) %>%
-    distinct()
-  
-  new = merge(new1, new2, by="Name", type= "full")
-  
-  new = new[complete.cases(new), ] %>%
-    distinct() %>%
-    arrange(desc(ReleaseDate))
-  return(new)
-}
-
-  
 archArtistInfluence = getOutsideInfluenceScore(archArtist, maroon5Members)
-archArtistInfluence
+#archArtistInfluence
 
-#ggplot(archArtistInfluence, aes(x = ReleaseDate, y = nonBandMemberWriters)) + geom_point()
+ggplot(archArtistInfluence, aes(x = ReleaseDate, y = nonBandMemberWriters)) + geom_point() + geom_smooth(method = "lm") + labs(title = "Number of non-Band Member Writers on Maroon 5's Songs Over Time")
 ```
 
+It is apparant that all of Maroon 5's Billboard Hot 100 charting songs were written completely and solely by members of Maroon 5 until just before 2015. After this point, all the charting songs have multiple writing credits given to writers not in Maroon 5. This indicates increased outside influence in the band's later music. 
 
-# Measure of Lyrical Complexity
-Some further preprocessing will be done to tidy the lyric data. Then the number of total words and unique stop words will be counted, and the total divided by the number of unique words will be used as a metric to give some measure of lyrical repetition in the song. Furthermore, the average word length in the song will be recorded, as well the number of words divdided by the number of seconds in the song to get the words per second. 
+## Measure of Lyrical Complexity
+Some further preprocessing will be done to tidy the lyric data. Then the number of total words and unique stop words will be counted, and the number of unique words divided by the total number of words will be used as a metric to give some measure of lyrical repetition in the song. Furthermore, the average word length in the song will be recorded, as well the number of words divdided by the number of seconds in the song to get the words per second. Repetition, or the the number of unique words divided by the total number of words, will be considered most important and thus weighed most heavily. The average length of words in the song will be considered second most important and weighed just below the measure of repetition, and the average number of syllables in each word in the song as well as the number of words per second will be weighed the lightest.
+
 ```{r}
-library(quanteda)
-noContraction = function(lyrics){
-  new = lyrics %>% 
-    gsub("can't", "cannot", .) %>% #special n't
-    gsub("couldn't've", "could not have", .) %>%
-    gsub("mustn't've", "must not have", .) %>%
-    gsub("who'd've", "who would have", .) %>%
-    gsub("why'd", "why did", .) %>%
-    gsub("n't", " not", .) %>%
-    gsub("'ll", " will", .) %>% 
-    gsub("'d", " would", .) %>% 
-    gsub("n't", " not", .) %>%
-    gsub("'ve", " have", .) %>%
-    gsub("'re", " are", .) %>%
-    gsub("'cause", "because", .) %>%
-    gsub("there's", "there is", .) %>% 
-    gsub("everyone's", "everyone is", .) %>% 
-    gsub("she's", "she is", .) %>%
-    gsub("he's", "he is", .) %>%
-    gsub("it's", "it is", .) %>%
-    gsub("let's", "let us", .) %>%
-    gsub("how's", "how is", .) %>%
-    gsub("somebody's", "somebody is", .) %>%
-    gsub("someone's", "someone is", .) %>%
-    gsub("something's", "something is", .) %>%
-    gsub("that's", "that is", .) %>%
-    gsub("there's", "there is", .) %>%
-    gsub("what's", "what is", .) %>%
-    gsub("when's", "when is", .) %>%
-    gsub("where's", "where is", .) %>%
-    gsub("who's", "who is", .) %>%
-    gsub("gonna", "going to", .) %>% 
-    gsub("gotta", "got to", .) %>% 
-    gsub("gimme", "give me", .)%>% 
-    gsub("tryna", "trying to", .) %>%
-    gsub("i'm'a", "i am about to", .)%>% 
-    gsub("i'm", "i am", .) %>%
-    gsub("gimme", "give me", .) %>%
-    gsub("y'all", "you all", .)
-  return(new)
-}
-
-# str_replace("Hi Daniel", list(a= "x", i =  "z")) ## doesn't work
-
-individualLyric = function(df){
-  newDf = df %>% 
-  unnest_tokens(word, Lyrics) %>%
-  anti_join(stop_words) %>%
-  distinct()
-  return(newDf)
-}
-
-getLyricalComplexity = function(df){
-  lyricsDf = df %>%
-    select(Name, Lyrics) %>%
-    distinct() %>% #now have the lyrics of all of the songs 
-    mutate(Lyrics = tolower(Lyrics)) %>% #Get all lyrics to be lower case
-    mutate(Lyrics = noContraction(Lyrics)) %>% #There are now no contractions besides possessives
-    #mutate(unlist(str_split(Lyrics, "\n", n = 1))) %>% ##############NEEED TO BE ABLE TO STRIP THE TITLE
-    mutate(Lyrics = gsub("[^a-z ]", " ", Lyrics)) #Remove what is not an english letter
-    
-  individual = individualLyric(lyricsDf)
-  
-  fullLyrics = individual %>%
-    group_by(Name) %>%
-    tally(name = "uniqueNonStop")
-  
-  totalLyrics = lyricsDf %>%
-    unnest_tokens(word, Lyrics) %>%
-    group_by(Name) %>% 
-    tally(name = "totalWords")
-
-
-  avgLenAndSyls = individual %>%
-    group_by(Name) %>%
-    distinct() %>%
-    mutate(wordLength = nchar(word))%>%
-    mutate(wordSyllables = nsyllable(word, syllable_dictionary = quanteda::data_int_syllables,
-  use.names = FALSE)) %>%
-    select(Name, wordLength, wordSyllables) %>%
-    ddply(.,~Name, summarize, avgWordLen = mean(wordLength, na.rm = TRUE), avgSyllables = mean(wordSyllables, na.rm = TRUE))
-  
-
-  #Get the total words by the duration 
-  wordsByTime = df %>%
-    select(Name, DurationInSecs) %>%
-    distinct() %>%
-    full_join(totalLyrics, by = "Name") %>%
-    mutate(wordsPerSec = totalWords/DurationInSecs) %>%
-    select(Name, wordsPerSec)
-  
-  
-  new3 = join_all(list(fullLyrics, totalLyrics, avgLenAndSyls, wordsByTime), by = "Name")
-
-  
-  #new3 = join_all(list(fullLyrics, totalLyrics, avgLen), by = "Name")
-
-  new3$UniqueToTotalRatio = new3$uniqueNonStop/new3$totalWords
-  full = new3[complete.cases(new3), ] 
-  
-  full[c(2,3,4,5,6,7)] = sapply(full[c( 2,3,4,5,6,7)],scale)
-  
-  scores = full %>%
-    do(data.frame(Name = full$Name, lyricalComplexity = full$avgWordLen +full$avgSyllables +full$UniqueToTotalRatio+ full$wordsPerSec))
-  
-  datesDf = df %>%
-    select(Name, ReleaseDate) %>%
-    distinct()
-  
-  final = merge(scores, datesDf, by="Name", type= "full")
-  
-  final = final[complete.cases(final), ] %>%
-    distinct() %>%
-    arrange(desc(ReleaseDate))
-  return(final)
-  
-}
-
 lyricalComplexDf = getLyricalComplexity(archArtist)
-lyricalComplexDf
+#lyricalComplexDf
 
 
-
-ggplot(lyricalComplexDf, aes(x = ReleaseDate, y = lyricalComplexity)) + geom_point() + geom_smooth(method = "lm")
+ggplot(lyricalComplexDf, aes(x = ReleaseDate, y = lyricalComplexity)) + geom_point() + geom_smooth(method = "lm") + labs(title = "Lyrical Complexity of Maroon 5 Songs by Release Date")
 ```
 
-#Measure of Musical Complexity
-Previously, the music data was held for each section of each song, but it will need to be aggregated to each song. Now for each song measures of the number of unique chords, non-diatonic chords, extended chords, number of sections, and if any section ends are different will be held. 
+When the lyrical complexity of Maroon 5's Billboard charting songs are plotted against time, it is aparrent that there is a negative assosication between lyrical complexity and time for Maroon 5 charting songs. By far the least lyrically complex song was one of the more recent, and released around 2017. While this is worth noting, it is should also be said that this point and a point around 2002 given a very high score are both arguably high leverage points. 
+
+## Measure of Musical Complexity
+Previously, the music data was held for each section of each song, but it will need to be aggregated to each song. Now for each song measures of the number of unique chords, non-diatonic chords, extended chords, number of sections, and the number of section ends that are different will be held. It should be noted that not all songs will have music chord data, so these units will recieve 0 for musical complexity after the present complexity levels are standardized. This is so these songs will not affect the total complexity of a song which will be calculated later using the standardized lyrical and musical complexities. 
+
+The musical complexity score is computed by weighing the number of non-ditonic chords, or chords outside of the key the song is in that are not expected to be heard, and the numebr of unique chords in the song more than the number of extended chords and the number of sections which are different, as these are argueably less difinitive measures of musical complexity. 
 ```{r}
-countUniqueChords = function(df){
-  uniqueChords = unique(unlist(strsplit(paste(paste("-", unlist(df["Progression"]), sep = ""), collapse = ""), "-"))[-1])
-  numUniqueChords = length(uniqueChords[uniqueChords != "NA"])
-  return(numUniqueChords)
-}
-
-checkDifferentEnd = function(df){
-  vals = df$EndDifferent
-  endDif = sum(!is.na(vals) & vals != "")
-  return (endDif)
-}
-
-
-getMusicComplexity = function(df){
-  new1 = df %>%
-    select(Name, Section, Progression,EndDifferent, DurationInSecs, NumSectionChords, nonDiatonicChords, extendedChords) %>%
-    distinct() 
-  
-  
-  new2 = new1 %>%
-    select(Name, nonDiatonicChords, extendedChords) %>%
-    group_by(Name) %>%
-    summarise_all(sum)
-
-  
-  new3 = df %>%
-    group_by(Name) %>%
-    do(data.frame(numUniqueChords = countUniqueChords(.)))
-  
-  new4 = new1 %>% 
-    group_by(Name) %>%
-    do(data.frame(endDif = checkDifferentEnd(.)))
-  
-  full = join_all(list(new2, new3, new4), by = "Name", type = "full")
-  full = full[complete.cases(full), ]
-  full[c(2,3,4,5)] = sapply(full[c( 2,3,4,5)],scale)
-  
-  scores = full %>%
-    do(data.frame(Name = full$Name , musicalComplexity = 2 * (full$nonDiatonicChords) + (full$extendedChords) + (full$numUniqueChords) + 5 * (full$endDif)))
-  
-  datesDf = df %>%
-    select(Name, ReleaseDate) %>%
-    distinct()
-  
-  final = merge(scores, datesDf, by="Name", type= "full")
-  
-  final = final[complete.cases(final), ] %>%
-    distinct() %>%
-    arrange(desc(ReleaseDate))
-  return(final)
-}
-
 musicComplexDf = getMusicComplexity(archArtist)
-musicComplexDf
+#musicComplexDf
 
-ggplot(musicComplexDf, aes(x = ReleaseDate, y = musicalComplexity)) + geom_point() + geom_smooth(method = "lm")
+ggplot(musicComplexDf, aes(x = ReleaseDate, y = musicalComplexity)) + geom_point() + geom_smooth(method = "lm") + labs(title = "Musical Complexity of Maroon 5 Songs By Release Date")
 ```
 
-Now all of the smaller metric datasets will be joined.
+There is less music chord data to go off of, but what is there shows Maroon 5 as scoring lower muiscal complexity scores in their later released songs in comparison to their earlier released material. 
+
+
+Now all of the smaller metric datasets will be joined and all of the columns other than the count of writers who are not in the band will be standardized. 
 ```{r}
-fullMetricsDataSet = function(popScores, origScores, lyricComp, musicComp){
-  full = join_all(list(as.data.frame(popScores), as.data.frame(origScores), as.data.frame(lyricComp), as.data.frame(musicComp)), by = "Name", type = "full")
-  full[c(2,3,4,5,7,8,9)] = sapply(full[c( 2,3,4,5,7,8,9)],scale)
-  return(full)
-}
 artistMetricDf = fullMetricsDataSet(archArtistPop, archArtistInfluence, lyricalComplexDf, musicComplexDf)
-artistMetricDf
+#artistMetricDf
 
-artistMetricDf %>%
-  select(Name, pop1, pop2, pop3, pop4) %>%
-  gather(key = "Metric", value = "Score", -Name) %>%
-  ggplot(aes(x = Name, y = Score, fill = Metric)) + geom_col(position = "dodge")
+#artistMetricDf %>%
+#  select(Name, pop1, pop2, pop3, pop4) %>%
+#  gather(key = "Metric", value = "Score", -Name) %>%
+#  ggplot(aes(x = Name, y = Score, fill = Metric)) + geom_col(position = "dodge") + labs(title = "Comparison of Popularity Metrics Across Maroon 5 Billboard Hot 100 Songs") + theme(axis.text.x = element_text(angle = 90))
 ```
 
 
-#Applicatble Functionality
-Now that all of the metrtic data is collected along with the original data on the artist's songs, their tracks can be compared directly to each other in some meaningful ways. 
+## Applicable Functionality
+Now that all of the metrtic data is collected along with the original data on the artist's songs, their tracks can be compared directly to each other in some meaningful ways. First a function will be made to compare chosen tracks of a particular artist. The result is a few plots tracking each song's life on the Billboard Hot 100, and a plot giving the track's contribution to the pop1 metric each week. Then there are some formatted and color coded tables to summarize the metric data. Things shaded red are below the average when standardized and the green are above 0. This is run on a selection of Maroon 5 songs below. 
+
 ```{r}
 #Can track pop1 metric over time because weeks is a changing metric
 #Join all of the originality and complexity metrics because they are attatched to the song, not moving by week
-compareTracks = function(songs, artistDf, metricDf){
-  songs = lapply(songs, stringColStandardizer)
-  artistDfSub = artistDf[artistDf$Name %in% songs, ] %>%
-    select(Name, BillboardWeekRank, WeeksOnBillboard, Year, Month, Week, ReleaseDate, Genre, Features, Songwriter, numWriters, numArtists, Streams, RiaaStatus, Label, GrammyAward, GrammyYear, Explicit, Album, Acousticness, Danceability, Energy, Instrumentalness, Liveness, Loudness, Mode, Popularity, Speechiness, Tempo, TimeSignature, Valence, DurationInSecs) %>%
-    distinct()
-  print(metricDf)
-  #metricDfSub = metricDf[c(-2, -3, -4)]
-  full = merge(artistDfSub, metricDf, by = "Name", type = "full")
-  full = subset(full, !is.na(full[,3]))
-  
-  #Here is the weekly contribution to the pop1 score that was calculated earlier.
-  #Shows how the contribution to this metric changes over time of a song on the chart
-  full$pop1SWeekScore = full$WeeksOnBillboard / full$BillboardWeekRank
-  song1 = paste(songs[-length(songs)], collapse = ", ")
-  song2 = songs[length(songs)-1]
-  graphic1 = ggplot(full, aes(x=WeeksOnBillboard, y = pop1SWeekScore, color = Name)) +
-    geom_point() + geom_line() + labs(title = substitute(paste("Weekly Contribution to Pop1 Score On Billboard Hot 100 from " ,song1, " and ", song2)))
-  graphic2 = ggplot(full, aes(x=WeeksOnBillboard, y = BillboardWeekRank, color = Name)) +
-    geom_point() + geom_line() + labs(title = substitute(paste("Rank On Billboard Hot 100 for " ,song1 , " and ", song2, " by Week"))) + scale_y_reverse()
-  print(graphic1)
-  print(graphic2)
-  print(full)
-  
-  #outsideInfTableDf = full %>%
-  #  select(Name, ReleaseDate, Label, nonBandMemberWriters) %>%
-  #  distinct()
-  
-  #popTableDf = full %>%
-  #  select(Name, ReleaseDate, pop1, pop2, pop3, pop4, GrammyAward, RiaaStatus) %>%
-  #  distinct()
-  
-  #complexityTableDf = full %>%
-  #  select(Name, ReleaseDate, lyricalComplexity, musicalComplexity) %>%
-  #  distinct()
-}
 
-#compareTracks("She will be loved", "Girls like you", archArtist, artistMetricDf)
-compareTracks(c("She will be loved", "Harder to Breathe", "Wait", "Sugar"), archArtist, artistMetricDf)
 
+tables = compareTracks(c("She will be loved", "Girls like you"), archArtist, artistMetricDf)
+#tables = compareTracks(c("She will be loved", "Harder to Breathe", "Wait", "Sugar"), archArtist, artistMetricDf)
+
+kable(tables[1]) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+  
+as.data.frame(tables[2]) %>%
+  mutate(pop1 = cell_spec(pop1, "html",color = ifelse(pop1 > 0,"green", "red")),
+         pop2 = cell_spec(pop2, "html",color = ifelse(pop2 > 0,"green", "red")),
+         pop3 = cell_spec(pop3, "html",color = ifelse(pop3 > 0,"green", "red")),
+         pop4 = cell_spec(pop4, "html",color = ifelse(pop4 > 0,"green", "red")),) %>%
+  kable("html", escape = FALSE) %>%
+  kable_styling()
+  
+as.data.frame(tables[3]) %>%
+  mutate(totalComplexity = cell_spec(totalComplexity, "html",color = ifelse(totalComplexity > 0,"green", "red"))) %>%
+  kable("html", escape = FALSE) %>%
+  kable_styling()
 ```
 
+In the comparison of an older and very popular charting song of Maroon 5's called "She will be Loved" to a newer song of theirs that is indicated as their most commercially popular, "Girls Like you", it is apparant that small differences in how the tracks performed on the charts had significant differences in their contributions to the pop1 metric. "Girls Like you" was on the chart for about 10 weeks longer which certainly was an indication of greater popularity rewarded with continual addition to the pop1 score, but also it maintained its peak spot on the charts at number 1 for much longer. "She will be Loved" climbed to its peak and fell out of the top 10 in the same number of weeks that "Girls Like you" maintained the top spot. This maintainence was heavily rewarded in greater and greater pop1 score additions each week, and is really the reason why "Girls Like you" received such a great value in that metric. 
 
-All of the previously created functionality should be able to be applied to any valid artist that there is available data on. The full pipeline of function calls is below, 
+Supplementary to this, the tables indicate that "Girls Like you" had 6 outside writers whereas "She will be Loved" had none. Both songs had over-average popularity for Maroon 5 songs, but "Girls Like you" had greater scores across the metrics. What is note-worthy is that "She will be Loved" had an over-average complexity and "Girls Like you" was about 1 standard deviation under the average in complexity, with only a minor difference being made for the version that is more complex with a rap verse. 
+
+
+
+All of the previously created functionality should be able to be applied to any valid artist that there is available data on. The full pipeline of function calls is below. The input just requires the artist name, the names of those given the writing credits of a track who are representing the artist or group, and the valid albums which should be considered. 
+
 ```{r}
 #Need to pass artist, and valid albs 
-completeArchDf = function(artist, members, validAlbs){
-  artistDf = artistDataJoiner(artist) %>% filter(Album %in% validAlbs)
-  print(artistDf)
-  archArtistPop = getPopularityMetric(artistDf)
-  archArtistInfluence = getOutsideInfluenceScore(artistDf, members)
-  lyricalComplexDf = getLyricalComplexity(artistDf)
-  musicComplexDf = getMusicComplexity(artistDf)
-  artistMetricDf = fullMetricsDataSet(archArtistPop, archArtistInfluence, lyricalComplexDf, musicComplexDf)
-  relDateDf = artistDf %>% select(Name, ReleaseDate)
-  fullMetric = merge(relDateDf, artistMetricDf, by ="Name")
-  #Fill musical complexity NAs with 0 because it is standardized
-  fullMetric$musicalComplexity[is.na(fullMetric$musicalComplexity)] = 0
-  fullMetric$totalComplexity = fullMetric$lyricalComplexity + fullMetric$musicalComplexity
-  fullMetric = fullMetric[complete.cases(fullMetric), ]
-  graph = ggplot(fullMetric, aes(x = ReleaseDate, y = totalComplexity)) + geom_point() + geom_smooth(method = "lm", ) + labs(title = paste( artist, "'s Song Complexity over Time"), ylab = "Song Complexity", xlab = "Release Date")
-  print(fullMetric)
-  print(graph)
-}
 
-completeArchDf("Maroon 5", c("Adam Levine", "	Jesse Carmichael", "Mickey Madden", "James Valentine", "Matt Flynn", "	PJ Morton", "Sam Farrar", "Ryan Dusick"), c("Red Pill Blues (Deluxe)", "v (Deluxe)", "	Overexposed Track by Track", "Hands all over (Deluxe)", "it Won't be Soon Before Long.", "Songs About Jane"))
-
-completeArchDf("Justin Timberlake", c("Justin Timberlake"), c("Justified", "Man of the Woods", "The 20/20 Experience - 2 of 2 (Deluxe)", "The 20/20 Experience (Deluxe Version)", "Futuresex/Lovesounds Deluxe Edition"))
-
-completeArchDf("Twenty One Pilots", c("Tyler Joseph", "Josh Dun", "Nick Thomas", "Chris Salih"), c("Trench", "	Blurryface","Vessel (with Bonus Tracks)", "Twenty One Pilots"))
+completeArchDf("Maroon 5", c("Adam Levine", "Jesse Carmichael", "Mickey Madden", "James Valentine", "Matt Flynn", "PJ Morton", "Sam Farrar", "Ryan Dusick"), c("Red Pill Blues + (Deluxe)", "v (Deluxe)", "Overexposed Track by Track", "Hands all over (Deluxe)", "it Won't be Soon Before Long.", "Songs About Jane"), c()) #May be 2 versions of girls like you - one with rap and one without
 ```
 
+From the simple linear regressions of each of the three metrics against the release date of all of Maroon 5's charting songs, it seems there was a moderate decrease in their song complexity, a slight increase in their song popularity, and drastic increase in outside influence to their music as time passed. 
 
-ORDER BY RELEASE DATE IN SMALLER DATA SETS FOR NARRATIVE PURPOSES
+
+```{r}
+completeArchDf("Justin Timberlake", c("Justin Timberlake"), c("Justified", "Man of the Woods", "The 20/20 Experience - 2 of 2 (Deluxe)", "The 20/20 Experience (Deluxe Version)", "Futuresex/Lovesounds Deluxe Edition"), c())
+
+```
+
+From the simple linear regressions of each of the three metrics against the release date of all of Justin Timberlake's charting songs, it seems there was a insignificant change in his song complexity, a very slight decrease in his song popularity, and a slight increase in outside influence to his music as time passed. 
+
+```{r}
+completeArchDf("Twenty One Pilots", c("Tyler Joseph", "Josh Dun", "Nick Thomas", "Chris Salih"), c("Trench", "Blurryface","Vessel (with Bonus Tracks)", "Twenty One Pilots"), c("Cancer"))#Cancer was a cover so it is excluded even though it made the chart
+```
+
+From the simple linear regressions of each of the three metrics against the release date of all of Twenty One Pilot's charting songs, it seems there was a very slight decrease in their song complexity, a slight decrease in their song popularity, and no change in outside influence to their music as time passed. 
+
+```{r}
+completeArchDf("Foo Fighters", c("Dave Grohl", "Nate Mendel", "Pat Smear", "Taylor Hawkins", "Chris Shiflett", "Rami Jaffee", "William Goldsmith", "Franz Stahl"), c("Wasting Light", "Echoes, Silence, Patience & Grace", "In your Honor", "One by One (Expanded Edition)", "There is Nothing Left to Lose", "The Colour and the Shape", "Concrete and Gold", "Foo Fighters", "Sonic Highways"), c())
+```
+
+From the simple linear regressions of each of the three metrics against the release date of all of the Foo Fighter's charting songs, it seems there was a significant increase in their song complexity, a significant decrease in their song popularity, and no change in outside influence to their music as time passed. 
+
+```{r}
+completeArchDf("Taylor Swift", c("Taylor Swift"), c("Reputation", "1989 (Deluxe Edition)", "Red (Deluxe Edition)", "Speak Now (Deluxe Edition)", "Fearless (Platinum Edition)", "Taylor Swift"), c())
+```
+
+From the simple linear regressions of each of the three metrics against the release date of all of Taylor Swift's charting songs, it seems there was slight decrease in her song complexity, a very slight increase in her song popularity, and a significant increase in outside influence to her music as time passed. 
+
+```{r}
+completeArchDf("Justin Bieber", c("Justin Bieber"), c("Purpose (Deluxe)", "Journals", "Believe (Deluxe Edition)", "under the Mistletoe (Deluxe Edition)", "My World 2.0", "Never Say Never - The Remixes", "My World"), c())
+```
+
+From the simple linear regressions of each of the three metrics against the release date of all of Justin Bieber's charting songs, it seems there was a very slight increase in his song complexity, a slight increase in his song popularity, and an insignificant change in outside influence to his music as time passed. 
+
+```{r}
+completeArchDf("Britney Spears", c("Britney Spears"), c("Britney Jean (Deluxe Version)", "Femme Fatale (Deluxe Version)", "Circus (Deluxe Version)", "Blackout", "In the Zone", "Britney (Digital Deluxe Version)", "Oops!... i Did it Again", "...baby One more Time (Digital Deluxe Version)", "Glory (Deluxe Version)") ,c())
+```
+
+From the simple linear regressions of each of the three metrics against the release date of all of Taylor Swift's charting songs, it seems there was moderate increase in her song complexity, a very slight increase in her song popularity, and a moderate increase in outside influence to her music as time passed. 
+
+```{r}
+completeArchDf("j Cole", c("j Cole"), c("Revenge of the Dreamers Iii", "Kod", "2014 Forest Hills Drive", "Cole World: The Sideline Story", "4 your Eyez Only", "Born Sinner", "The Blow Up"), c())
+```
+
+From the simple linear regressions of each of the three metrics against the release date of all of J Cole's charting songs, it seems there was moderate increase in his song complexity, a moderate decrease in his song popularity, and a decrease in outside influence to his music as time passed. 
+
+
