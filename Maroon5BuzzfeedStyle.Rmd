@@ -103,7 +103,25 @@ Musical complexity was measured by the number of unique chords, non-diatonic cho
 musicComplexDf = getMusicComplexity(archArtist)
 #musicComplexDf
 
-ggplot(musicComplexDf, aes(x = ReleaseDate, y = musicalComplexity, label = Name)) + geom_point(aes(color = Album)) + geom_label_repel(data = musicComplexDf, box.padding   = 0.35, point.padding = 0.5, segment.color = 'grey50', nudge_y       = ifelse(musicComplexDf$musicalComplexity > 0, 5, -10), direction = "x")+ theme_classic(base_size = 10)+ geom_smooth(method = "lm") + labs(title = "Musical Complexity of Maroon 5 Songs By Release Date", y = "Standardized Musical Complexity", x = "Release Date")
+combine_df <- full_join(musicComplexDf, archArtistInfluence) %>%
+  drop_na()
+
+ggplot(combine_df, aes(x = ReleaseDate, 
+                           y = musicalComplexity, 
+                           label = Name)) +
+  geom_point(aes(color = Album, size = nonBandMemberWriters)) + 
+  geom_label_repel(data = combine_df, 
+                   box.padding   = 0.35, 
+                   point.padding = 0.5, 
+                   segment.color = 'grey50', 
+                   nudge_y       = ifelse(combine_df$musicalComplexity > 0, 5, -10),
+                   direction = "x") + 
+  theme_classic(base_size = 10) + 
+  geom_smooth(method = "lm") + 
+  labs(title = "Musical Complexity of Maroon 5 Songs By Release Date", 
+       y = "Standardized Musical Complexity", 
+       x = "Release Date") +
+  scale_size_continuous(name = "Number of Non-Band-Member Writers")
 ```
 
 There is less music chord data to go off of, but what is there shows Maroon 5 as scoring lower muiscal complexity scores in their later released songs in comparison to their earlier released material. Again "Harder to Breathe" is considered the most complex musically, 
