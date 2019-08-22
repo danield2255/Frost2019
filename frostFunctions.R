@@ -48,7 +48,6 @@ artistDataJoiner = function(artist){
   new1 = join_all(list(billboardSub, spotifySub), by = c("Name","Features" ,"Year", "Month", "Week"), type = "full")
   riaaSub = riaaDf[riaaDf$Artist %like% artist,]
   grammySub = grammyDf[grammyDf$Artist %like% artist,]
-  
   songAttrsSub = songAttrsDf[songAttrsDf$Artist %like% artist,] %>%
     mutate(DurationInSecs = Duration/1000) %>%
     select(-c("Duration"))
@@ -65,7 +64,7 @@ artistDataJoiner = function(artist){
 
 
 pop1Calc = function(df){
-  ret = sum(df$WeeksOnBillboard/df$BillboardWeekRank, na.rm = TRUE)
+  ret = sum(df$WeeksOnBillboard / df$BillboardWeekRank, na.rm = TRUE)
   return(ret)
 }
 
@@ -98,9 +97,9 @@ pop4Calc2 = function(df){
 
 getPopularityMetric = function(df){
   new1 = df %>%
-    select(Name, BillboardWeekRank, WeeksOnBillboard, PeakPosBillboard) %>%
+    select(Name, Album, BillboardWeekRank, WeeksOnBillboard, PeakPosBillboard) %>%
     distinct() %>%
-    group_by(Name) %>%
+    group_by(Name, Album) %>%
     do(data.frame( pop1=pop1Calc(.), pop2 = pop2Calc(.), pop3 = pop3Calc(.), pop4 = pop4Calc2(.))) %>%
     distinct()
   
@@ -110,9 +109,10 @@ getPopularityMetric = function(df){
   
   new = merge(new1, new2, by="Name", type= "full")
   
-  new = new[complete.cases(new), ] %>%
+  new = new[complete.cases(new[,!names(new) %in% c("Album")]), ] %>%
     distinct() %>%
     arrange(desc(ReleaseDate))
+
   return(new)
 }
 
@@ -132,21 +132,22 @@ countNonBandWriters = function(df, bandMembers){
 
 getOutsideInfluenceScore = function(df, bandMembers){
   new1 = df %>%
-    select(Name, WritingCredits) %>%
+    select(Name, WritingCredits, Album) %>%
     distinct() %>%
-    group_by(Name) %>%
+    group_by(Name, Album) %>%
     do(data.frame(nonBandMemberWriters = countNonBandWriters(., bandMembers))) %>%
     distinct()
-  
+
   new2 = df %>%
     select(Name, ReleaseDate) %>%
     distinct()
   
   new = merge(new1, new2, by="Name", type= "full")
   
-  new = new[complete.cases(new), ] %>%
+  new = new[complete.cases(new[,!names(new) %in% c("Album")]), ] %>%
     distinct() %>%
     arrange(desc(ReleaseDate))
+
   return(new)
 }
 
@@ -252,12 +253,12 @@ getLyricalComplexity = function(df){
     do(data.frame(Name = full$Name, lyricalComplexity = 1.5 *full$avgWordLen +full$avgSyllables + 2* full$UniqueToTotalRatio+ full$wordsPerSec))
   
   datesDf = df %>%
-    select(Name, ReleaseDate) %>%
+    select(Name, ReleaseDate, Album) %>%
     distinct()
   
   final = merge(scores, datesDf, by="Name", type= "full")
   
-  final = final[complete.cases(final), ] %>%
+  final = final[complete.cases(final[,!names(final) %in% c("Album")]), ] %>%
     distinct() %>%
     arrange(desc(ReleaseDate))
   return(final)
@@ -303,12 +304,12 @@ getMusicComplexity = function(df){
     do(data.frame(Name = full$Name , musicalComplexity = 2 * (full$nonDiatonicChords) + (full$extendedChords) + 2* (full$numUniqueChords) + (full$endDif)))
   
   datesDf = df %>%
-    select(Name, ReleaseDate) %>%
+    select(Name, ReleaseDate, Album) %>%
     distinct()
   
   final = merge(scores, datesDf, by="Name", type= "full")
   
-  final = final[complete.cases(final), ] %>%
+  final = final[complete.cases(final[,!names(final) %in% c("Album")]), ] %>%
     distinct() %>%
     arrange(desc(ReleaseDate))
   return(final)
@@ -316,8 +317,11 @@ getMusicComplexity = function(df){
 
 
 fullMetricsDataSet = function(popScores, origScores, lyricComp, musicComp){
-  full = join_all(list(as.data.frame(popScores), as.data.frame(origScores), as.data.frame(lyricComp), as.data.frame(musicComp)), by = "Name", type = "full")
-  full[c(2,3,4,5,8,9)] = sapply(full[c( 2,3,4,5,8,9)],scale)
+  full = join_all(list(as.data.frame(popScores), as.data.frame(origScores), as.data.frame(lyricComp), as.data.frame(musicComp)), by = c("Name", "Album"), type = "full")
+  full[c(3,4,5,6,9,10)] = sapply(full[c(3,4,5,6,9,10)],scale)
+  #Fill musical complexity NAs with 0 because it is standardized
+  full$musicalComplexity[is.na(full$musicalComplexity)] = 0
+  full$totalComplexity = full$lyricalComplexity + full$musicalComplexity
   return(full)
 }
 
@@ -355,9 +359,8 @@ compareTracks = function(songs, artistDf, metricDf){
     arrange(desc(pop1), desc(pop2), desc(pop3), desc(pop4))
   
   complexityTableDf = full %>%
-    select(Name, ReleaseDate, lyricalComplexity, musicalComplexity) %>%
+    select(Name, ReleaseDate, totalComplexity) %>%
     distinct() %>%
-    mutate(totalComplexity = lyricalComplexity + musicalComplexity) %>%
     arrange(desc(totalComplexity))
   return(list(outsideInfTableDf, popTableDf, complexityTableDf))
 }
@@ -368,29 +371,24 @@ compareTracks = function(songs, artistDf, metricDf){
 completeArchDf = function(artist, members, validAlbs, excludeSongs){
   artistDf = artistDataJoiner(artist) %>% 
     filter(!is.na(BillboardWeekRank) & Album %in% c(validAlbs, NA) & !Name %in% excludeSongs)
-    
   archArtistPop = getPopularityMetric(artistDf)
   archArtistInfluence = getOutsideInfluenceScore(artistDf, members)
   lyricalComplexDf = getLyricalComplexity(artistDf)
   musicComplexDf = getMusicComplexity(artistDf)
   artistMetricDf = fullMetricsDataSet(archArtistPop, archArtistInfluence, lyricalComplexDf, musicComplexDf)
-  relDateDf = artistDf %>% select(Name, ReleaseDate)
+  relDateDf = artistDf %>% select(Name, ReleaseDate, Label)
   fullMetric = merge(relDateDf, artistMetricDf, by =c("Name", "ReleaseDate"))
-  #Fill musical complexity NAs with 0 because it is standardized
-  fullMetric$musicalComplexity[is.na(fullMetric$musicalComplexity)] = 0
-  fullMetric$totalComplexity = fullMetric$lyricalComplexity + fullMetric$musicalComplexity
   fullMetric = fullMetric %>% 
-    filter(complete.cases(.[,!names(.) %in% c("nonBandMemberWriters")])) %>%
+    filter(complete.cases(.[,!names(.) %in% c("nonBandMemberWriters", "Label", "Album")])) %>%
     distinct()
-  complexGraph = ggplot(fullMetric, aes(x = ReleaseDate, y = totalComplexity)) + geom_point() + geom_smooth(method = "lm", ) + labs(title = paste( artist, "'s Song Complexity Over Time"), ylab = "Song Complexity", xlab = "Release Date")
-  popGraph = ggplot(fullMetric, aes(x = ReleaseDate, y = pop1)) + geom_point() + geom_smooth(method = "lm", ) + labs(title = paste( artist, "'s Song Popularity(by Pop1 Metric) Over Time"), ylab = "Pop1 Score", xlab = "Release Date")
-  infGraph = ggplot(fullMetric, aes(x = ReleaseDate, y = nonBandMemberWriters)) + geom_point() + geom_smooth(method = "lm", ) + labs(title = paste( artist, "'s Outside Influence Over Time"), ylab = "Number of Non-Artist Writers", xlab = "Release Date")
-  print(complexGraph)
-  print(popGraph)
-  print(infGraph)
+  complexGraph = ggplot(fullMetric, aes(x = ReleaseDate, y = totalComplexity)) + geom_point() + geom_smooth(method = "lm", ) + labs(y = "Standardized Song Complexity", x = "Release Date")
+  popGraph = ggplot(fullMetric, aes(x = ReleaseDate, y = pop1)) + geom_point() + geom_smooth(method = "lm", ) + labs(y = "Standardized Pop Score", x = "Release Date")
+  infGraph = ggplot(fullMetric, aes(x = ReleaseDate, y = nonBandMemberWriters)) + geom_point() + geom_smooth(method = "lm", ) + labs(y = "Number of Non-Artist Writers", x = "Release Date")
+
+  grid.arrange(complexGraph, popGraph, infGraph, ncol = 2, nrow = 2, top = paste(artist, "'s Song Popularity, Complexity, and Outside Influence Over Time"))
   summary(lm(fullMetric$totalComplexity~fullMetric$ReleaseDate))
   
-  popGraph = ggplot(fullMetric, aes())
+  return (fullMetric)
 }
 
 

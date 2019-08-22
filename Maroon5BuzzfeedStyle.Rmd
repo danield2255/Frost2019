@@ -1,0 +1,174 @@
+---
+title: "Maroon 10: The Story of Maroon 5 and 5 Other Writers"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+```
+
+## Introduction 
+The previously hard-to-define band Maroon 5 has recently evolved into a pop giant, holding the number one spot on the Billboard Hot 100 through most of 2018. The group has more than evaded the traditional dropoff in popularity which many musical artists experience, and instead have released their most popular song in 2018, being "Girls Like you". However, the band who used to play rock, alternative, funk, and arguably almost jazz at times all of a sudden seems to be pop and electronic based with rap features and synthesizers abundent. This sign of genre or style change may push listeners to ask "what prompted my favorite band from 2003 to burn all of their instruments and collab with Cardi B?" 
+
+This wonder is really encapsulated by “What is the effect over time of music industry influence on musical artists, in terms of musical content?” measures of popularity, complexity, and outside influence to an artist should be measured over time. To figure out really in what ways the 2002 hit "She Will be Loved" is truely different from 2017-18's "Girls Like you", the language elements of the lyrics and the musical elements of the song must be measured. Popularity is measured by Billboard Hot 100 ranks and an interpretation of the lifetime of a song on the charts. Finally, outside influence can be measured by the number of writers who are not the aritst, so for Maroon 5, people who were given writing credits who are not in the band. More writers on a Maroon 5 song who are not members of the band indicates more outside influence to the content. 
+
+
+```{r, message=FALSE}
+options(kableExtra.auto_format = FALSE)
+library(htmltools)
+library(tidyverse)
+library(tidytext)
+library(data.table)
+library(plyr)
+library(quanteda)
+library(kableExtra)
+library(knitr)
+library(gridExtra)
+library(formattable)
+library(ggrepel)
+
+source("frostFunctions.R")
+```
+
+
+```{r, message= FALSE, warning=FALSE}
+billboardDf = read_csv("FrostData/billboardDataClean.csv", col_types = cols())
+spotifyDf = read_csv("FrostData/spotifyDataClean.csv", col_types = cols())
+riaaDf = read_csv("FrostData/riaaDataClean.csv", col_types = cols())
+grammyDf = read_csv("FrostData/grammyDataClean.csv", col_types = cols())
+songSecsDf = read_csv("FrostData/songSectionDataClean.csv", col_types = cols())
+songAttrsDf = read_csv("FrostData/songAttrsDataClean.csv", col_types = cols())
+```
+
+
+```{r}
+archArtist = artistDataJoiner("Maroon 5")
+validAlbums = c("Red Pill Blues + (Deluxe)", "v (Deluxe)", "Overexposed Track by Track", "Hands all over (Deluxe)", "it Won't be Soon Before Long.", "Songs About Jane")
+
+archArtist = filter(archArtist, Album %in% validAlbums)
+#Need to adjust an incorrect data point
+archArtist[archArtist$Name %like% "If i Never See your Face Again", "Album"] = "it Won't be Soon Before Long."
+#archArtist
+```
+
+
+
+## Measure of Popularity
+Quantifying popularity is subjective, but a metric will be used that accounts for the each week's position on the chart scaled by the number of weeks it has been on the charts. This rewards longevity on the charts, and heavily rewards higher positions. 
+
+```{r, warning=FALSE}
+archArtistPop = getPopularityMetric(archArtist)
+#archArtistPop
+
+ggplot(archArtistPop, aes(x = ReleaseDate, y = pop1, label= Name)) + geom_label_repel(data = subset(archArtistPop, pop1 > 100), box.padding   = 0.35, point.padding = 0.5, segment.color = 'grey50') + theme_classic(base_size = 10) + geom_point(aes(color = Album)) + geom_smooth(,method = "lm") + labs(title = "Pop1 of Maroon 5 Songs By Release Date", y = "Pop1 Score", x = "Release Date")
+
+```
+
+By the popularity metric made, there is indication of a slight increase in the level of popularity in the Maroon 5's charting songs as time increases. "Girls Like you" is looked at as by far the most popular, but perhaps it should be, with a 52 week tenure on the charts, and a reasonable long run at number 1. 
+
+## Measure Outside Influence
+To consider how much outside of influence was given in the creation of a song, counting the number of writers of the song who are not the artist themselves. 
+```{r, warning=FALSE}
+maroon5Members= c("Adam Levine", "Jesse Carmichael", "Mickey Madden", "James Valentine", "Matt Flynn", "PJ Morton", "Sam Farrar", "Ryan Dusick")
+
+archArtistInfluence = getOutsideInfluenceScore(archArtist, maroon5Members)
+#archArtistInfluence
+
+
+ggplot(archArtistInfluence, aes(x = ReleaseDate, y = nonBandMemberWriters, color = Album, label = Name)) + geom_point() + labs(title = "Number of non-Band Member Writers on Maroon 5's Songs Over Time", y = "Number of Non-Bandmember Writers", x = "Release Date")
+```
+
+It is apparant that all of Maroon 5's Billboard Hot 100 charting songs were written completely and solely by members of Maroon 5 until just before 2015. After this point, all the charting songs have multiple writing credits given to writers not in Maroon 5. This suggests increased outside influence in the band's more recent music. 
+
+## Measure of Lyrical Complexity
+
+The band's lyrical complexity will be measured by the total number of words and number of unique meaningful words, as well as the average length of words in the song, average number of syllables in lyrics of the song, and average number of words per second. This will be able to account for vocabulary, linguistic sophistication, and repetition. 
+
+```{r}
+lyricalComplexDf = getLyricalComplexity(archArtist)
+#lyricalComplexDf
+
+lyricalComplexDf = lyricalComplexDf[-21,]
+
+ggplot(lyricalComplexDf, aes(x = ReleaseDate, y = lyricalComplexity, label = Name)) + geom_point(aes(color = Album)) + geom_label_repel(data = subset(lyricalComplexDf, lyricalComplexity > 2 | lyricalComplexity < -4), box.padding   = 0.35, point.padding = 0.5, segment.color = 'grey50', nudge_y = ifelse(subset(lyricalComplexDf, lyricalComplexity > 2 | lyricalComplexity < -4)$lyricalComplexity > 2, 5, -1)) + theme_classic(base_size = 10) + geom_smooth(method = "lm") + labs(title = "Lyrical Complexity of Maroon 5 Songs by Release Date", y = "Standardized Lyrical Complexity", x = "Release Date")
+```
+
+When the lyrical complexity of Maroon 5's Billboard charting songs are plotted against time, it is aparrent that there is a negative assosication between lyrical complexity and time for Maroon 5 charting songs. By far the least lyrically complex song was one of the more recent, "What Lovers Do" in 2017 and the most lyricaly complex was "Harder to Breathe" from 2002. 
+
+## Measure of Musical Complexity
+
+Musical complexity was measured by the number of unique chords, non-diatonic chords, extended chords, number of sections, and the number of section ends that are different. Non-diatonic chords and extended chords are just more complex chords which might not be expected to be seen as often, so this is why they add to the complexity of the song. 
+
+```{r}
+musicComplexDf = getMusicComplexity(archArtist)
+#musicComplexDf
+
+ggplot(musicComplexDf, aes(x = ReleaseDate, y = musicalComplexity, label = Name)) + geom_point(aes(color = Album)) + geom_label_repel(data = musicComplexDf, box.padding   = 0.35, point.padding = 0.5, segment.color = 'grey50', nudge_y       = ifelse(musicComplexDf$musicalComplexity > 0, 5, -10), direction = "x")+ theme_classic(base_size = 10)+ geom_smooth(method = "lm") + labs(title = "Musical Complexity of Maroon 5 Songs By Release Date", y = "Standardized Musical Complexity", x = "Release Date")
+```
+
+There is less music chord data to go off of, but what is there shows Maroon 5 as scoring lower muiscal complexity scores in their later released songs in comparison to their earlier released material. Again "Harder to Breathe" is considered the most complex musically, 
+
+
+```{r}
+artistMetricDf = fullMetricsDataSet(archArtistPop, archArtistInfluence, lyricalComplexDf, musicComplexDf)
+#artistMetricDf
+
+#artistMetricDf %>%
+#  select(Name, pop1, pop2, pop3, pop4) %>%
+#  gather(key = "Metric", value = "Score", -Name) %>%
+#  ggplot(aes(x = Name, y = Score, fill = Metric)) + geom_col(position = "dodge") + labs(title = "Comparison of Popularity Metrics Across Maroon 5 Billboard Hot 100 Songs") + theme(axis.text.x = element_text(angle = 90))
+```
+
+
+## All in All
+
+From what has been seen so far, it seems that the popularity of Maroon 5 songs has generally risen and complexity has generally decreased as time has passed. The band made all songs internally until about 2012, a point from which they actually started to have a great number of cowriters on projects more and more. They never again had a charting song writen without an outside writer. Maybe this could be in part to them switching labels in 2014! When the periods of songwriting are separated, this is the result. 
+
+```{r}
+#Need to pass artist, and valid albs 
+
+#completeArchDf(, c("Adam Levine", "Jesse Carmichael", "Mickey Madden", "James Valentine", "Matt Flynn", "PJ Morton", "Sam Farrar", "Ryan Dusick"), c("Red Pill Blues + (Deluxe)", "v (Deluxe)", "Overexposed Track by Track", "Hands all over (Deluxe)", "it Won't be Soon Before Long.", "Songs About Jane"), c()) #May be 2 versions of girls like you - one with rap and one without
+artist = "Maroon 5"
+validAlbs = c("Red Pill Blues + (Deluxe)", "v (Deluxe)", "Overexposed Track by Track", "Hands all over (Deluxe)", "it Won't be Soon Before Long.", "Songs About Jane")
+members = c("Adam Levine", "Jesse Carmichael", "Mickey Madden", "James Valentine", "Matt Flynn", "PJ Morton", "Sam Farrar", "Ryan Dusick")
+
+artistDf = artistDataJoiner(artist) %>% 
+    filter(!is.na(BillboardWeekRank) & Album %in% c(validAlbs, NA))
+  archArtistPop = getPopularityMetric(artistDf)
+  archArtistInfluence = getOutsideInfluenceScore(artistDf, members)
+  lyricalComplexDf = getLyricalComplexity(artistDf)
+  musicComplexDf = getMusicComplexity(artistDf)
+  artistMetricDf = fullMetricsDataSet(archArtistPop, archArtistInfluence, lyricalComplexDf, musicComplexDf)
+  relDateDf = artistDf %>% select(Name, ReleaseDate)
+  fullMetric = merge(relDateDf, artistMetricDf, by =c("Name", "ReleaseDate"))
+  #Fill musical complexity NAs with 0 because it is standardized
+  fullMetric$musicalComplexity[is.na(fullMetric$musicalComplexity)] = 0
+  fullMetric$totalComplexity = fullMetric$lyricalComplexity + fullMetric$musicalComplexity
+  fullMetric = fullMetric %>% 
+    filter(complete.cases(.[,!names(.) %in% c("nonBandMemberWriters")])) %>%
+    distinct()
+  complexGraph = qplot(ReleaseDate, totalComplexity, group = ReleaseDate > "2014-01-01", geom = c("point", "smooth"), method = "lm", se = FALSE, data = fullMetric)+ labs(y = "Standardized Song Complexity", x = "Release Date") + geom_vline(xintercept = as.Date("2014-01-01"))
+
+  popGraph = qplot(ReleaseDate, pop1, group = ReleaseDate > "2014-01-01", geom = c("point", "smooth"), method = "lm", se = FALSE, data = fullMetric) +labs(y = "Standardized Pop Score", x = "Release Date")+ geom_vline(xintercept = as.Date("2014-01-01"))
+
+  infGraph = qplot(ReleaseDate, nonBandMemberWriters, group = ReleaseDate > "2014-01-01", geom = c("point", "smooth"), method = "lm", se = FALSE, data = fullMetric) + labs(y = "Number of Non-Artist Writers", x = "Release Date")+ geom_vline(xintercept = as.Date("2014-01-01"))
+
+
+  grid.arrange(complexGraph, popGraph, infGraph, ncol = 2, nrow = 2, top = paste(artist, "'s Song Popularity, Complexity, and Outside Influence Over Time"))
+```
+
+When Maroon 5 was on their first record label, A&M, they only had writing credits on charting songs for one album, "Overexposed", which was the last album they did for A&M. Some of the least complex songs were created under the new record label, mainly Interscope, with writing credits given to non band members on all of them. Their popularity was reasonably consistent other than "Girls Like you" which was far more popular than all their other songs. While there was decreased complexity in the charting songs which were released on Interscope, the complexity of their charting songs was already in decline from where it started in their first album. There is not a stark decrease in complexity after the record change, but rather a maintainence at the bottom  
+
+```{r}
+avgWritersByAlb = fullMetric %>%
+  group_by("Album") %>%
+  ddply(.,~Album, summarize, avgnumNonBandWriters = mean(nonBandMemberWriters, na.rm = TRUE), avgComplex = mean(totalComplexity, na.rm = TRUE), avgPop = mean(pop1, na.rm = TRUE))
+
+albums = c("Songs About Jane", "it Won't be Soon Before Long.", "Hands all over (Deluxe)", "Overexposed Track by Track", "v (Deluxe)", "Red Pill Blues + (Deluxe)")
+ggplot(avgWritersByAlb, aes(x = Album,y= avgPop, fill = avgComplex)) + geom_bar(stat = "identity")+ geom_text(size = 3, aes(label = paste("Avg ",avgnumNonBandWriters, " writers"),vjust=ifelse(avgPop > 0,-0.5,1))) +
+labs(title = "Average Popularity, Complexity, and Non-band Member Writers for each Maroon 5 Album", x = "Album", y = "Average Popularity", fill = "Average Complexity") + scale_x_discrete(limits = albums, labels = c("Songs About Jane", "It Won't be Soon Before Long", "Hands All Over", "Overexposed", "V", "Red Pill Blues")) + theme(axis.text.x = element_text(face="bold", angle=90), axis.text = element_text(size = 6)) + scale_fill_gradient(low="gray", high="red")
+```
+
+When looking at the data by album, it seems that the charting songs from their first album "Songs About Jane" were significantly more complex than their following works. The second album was less complex, but the third and fourth saw a resurgence in complexity, even with the the fourth album, "Overexposed" having a good number of outside cowriters on charting songs. Popularity was in noticable decline until this point as well. After the band's label change, complexity turned to head to its lowest point. The charting songs on the "Red Pill Blues" album were on average the least complex and most popular, with songs averaging the most outside influence. 
+
+What story does this information tell, and what can it teach about modern music culture? For Maroon 5, maybe they became accustomed to working with outside writers, so once they started, it became part of their process. Also as they were better and better known or more popular among industry entities it is possible writers sought more and more to work with the band. As far as music culture, it looks like these extra songwriters knew pretty well how to increase the band's popularity to places it had not been. It is also a possibility that the way this popularity is achieved is to be less complex, or also somewhat possibile that the tendencies of these writers also pushed towards being less complex. Time often instigates change, but for Maroon 5 changes on the planes of influence, popularity, and complexity reshaped their sound and image from when they began. With the band at arguably the most commercially popular place its been, it will be interesting to see where it goes from here.
