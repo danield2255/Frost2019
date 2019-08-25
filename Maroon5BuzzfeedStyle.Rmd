@@ -85,7 +85,7 @@ It is apparant that all of Maroon 5's Billboard Hot 100 charting songs were writ
 The band's lyrical complexity will be measured by the total number of words and number of unique meaningful words, as well as the average length of words in the song, average number of syllables in lyrics of the song, and average number of words per second. This will be able to account for vocabulary, linguistic sophistication, and repetition. 
 
 ```{r}
-lyricalComplexDf = getLyricalComplexity(archArtist)
+lyricalComplexDf = getLyricalComplexity(archArtist, TRUE)
 #lyricalComplexDf
 
 lyricalComplexDf = lyricalComplexDf[-21,]
@@ -100,17 +100,34 @@ When the lyrical complexity of Maroon 5's Billboard charting songs are plotted a
 Musical complexity was measured by the number of unique chords, non-diatonic chords, extended chords, number of sections, and the number of section ends that are different. Non-diatonic chords and extended chords are just more complex chords which might not be expected to be seen as often, so this is why they add to the complexity of the song. 
 
 ```{r}
-musicComplexDf = getMusicComplexity(archArtist)
+musicComplexDf = getMusicComplexity(archArtist, TRUE)
 #musicComplexDf
+combine_df <- full_join(musicComplexDf, archArtistInfluence) %>%
+  drop_na()
+ggplot(combine_df, aes(x = ReleaseDate, 
+                           y = musicalComplexity, 
+                           label = Name)) +
+  geom_point(aes(color = Album, size = nonBandMemberWriters)) + 
+  geom_label_repel(data = combine_df, 
+                   box.padding   = 0.35, 
+                   point.padding = 0.5, 
+                   segment.color = 'grey50', 
+                   nudge_y       = ifelse(combine_df$musicalComplexity > 0, 5, -10),
+                   direction = "x") + 
+  theme_classic(base_size = 10) + 
+  geom_smooth(method = "lm") + 
+  labs(title = "Musical Complexity of Maroon 5 Songs By Release Date", 
+       y = "Standardized Musical Complexity", 
+       x = "Release Date") +
+  scale_size_continuous(name = "Number of Non-Band-Member Writers")
 
-ggplot(musicComplexDf, aes(x = ReleaseDate, y = musicalComplexity, label = Name)) + geom_point(aes(color = Album)) + geom_label_repel(data = musicComplexDf, box.padding   = 0.35, point.padding = 0.5, segment.color = 'grey50', nudge_y       = ifelse(musicComplexDf$musicalComplexity > 0, 5, -10), direction = "x")+ theme_classic(base_size = 10)+ geom_smooth(method = "lm") + labs(title = "Musical Complexity of Maroon 5 Songs By Release Date", y = "Standardized Musical Complexity", x = "Release Date")
 ```
 
 There is less music chord data to go off of, but what is there shows Maroon 5 as scoring lower muiscal complexity scores in their later released songs in comparison to their earlier released material. Again "Harder to Breathe" is considered the most complex musically, 
 
 
 ```{r}
-artistMetricDf = fullMetricsDataSet(archArtistPop, archArtistInfluence, lyricalComplexDf, musicComplexDf)
+artistMetricDf = fullMetricsDataSet(archArtistPop, archArtistInfluence, lyricalComplexDf, musicComplexDf, TRUE)
 #artistMetricDf
 
 #artistMetricDf %>%
@@ -136,9 +153,9 @@ artistDf = artistDataJoiner(artist) %>%
     filter(!is.na(BillboardWeekRank) & Album %in% c(validAlbs, NA))
   archArtistPop = getPopularityMetric(artistDf)
   archArtistInfluence = getOutsideInfluenceScore(artistDf, members)
-  lyricalComplexDf = getLyricalComplexity(artistDf)
-  musicComplexDf = getMusicComplexity(artistDf)
-  artistMetricDf = fullMetricsDataSet(archArtistPop, archArtistInfluence, lyricalComplexDf, musicComplexDf)
+  lyricalComplexDf = getLyricalComplexity(artistDf, TRUE)
+  musicComplexDf = getMusicComplexity(artistDf, TRUE)
+  artistMetricDf = fullMetricsDataSet(archArtistPop, archArtistInfluence, lyricalComplexDf, musicComplexDf, TRUE)
   relDateDf = artistDf %>% select(Name, ReleaseDate)
   fullMetric = merge(relDateDf, artistMetricDf, by =c("Name", "ReleaseDate"))
   #Fill musical complexity NAs with 0 because it is standardized

@@ -18,6 +18,7 @@ All the functions will be defined in a separate source file, and then called in 
 ```{r, message=FALSE}
 options(kableExtra.auto_format = FALSE)
 library(ggrepel)
+library(grid)
 library(htmltools)
 library(tidyverse)
 library(tidytext)
@@ -100,7 +101,7 @@ It is apparant that all of Maroon 5's Billboard Hot 100 charting songs were writ
 Some further preprocessing will be done to tidy the lyric data. Then the number of total words and unique non stop words will be counted, and the number of unique words divided by the total number of words will be used as a metric to give some measure of lyrical repetition in the song. Furthermore, the average word length in the song will be recorded, as well the number of words divdided by the number of seconds in the song to get the words per second. Repetition, or the the number of unique words divided by the total number of words, will be considered most important and thus weighed most heavily. The average length of words in the song will be considered second most important and weighed just below the measure of repetition, and the average number of syllables in each word in the song as well as the number of words per second will be weighed the lightest.
 
 ```{r}
-lyricalComplexDf = getLyricalComplexity(archArtist)
+lyricalComplexDf = getLyricalComplexity(archArtist, TRUE)
 #lyricalComplexDf
 
 
@@ -114,7 +115,7 @@ Previously, the music data was held for each section of each song, but it will n
 
 The musical complexity score is computed by weighing the number of non-ditonic chords, or chords outside of the key the song is in that are not expected to be heard, and the numebr of unique chords in the song more than the number of extended chords and the number of sections which are different, as these are argueably less difinitive measures of musical complexity. 
 ```{r}
-musicComplexDf = getMusicComplexity(archArtist)
+musicComplexDf = getMusicComplexity(archArtist, TRUE)
 #musicComplexDf
 
 ggplot(musicComplexDf, aes(x = ReleaseDate, y = musicalComplexity)) + geom_point() + geom_smooth(method = "lm") + labs(title = "Musical Complexity of Maroon 5 Songs By Release Date")
@@ -125,7 +126,7 @@ There is less music chord data to go off of, but what is there shows Maroon 5 as
 
 Now all of the smaller metric datasets will be joined and all of the columns other than the count of writers who are not in the band will be standardized. 
 ```{r}
-artistMetricDf = fullMetricsDataSet(archArtistPop, archArtistInfluence, lyricalComplexDf, musicComplexDf)
+artistMetricDf = fullMetricsDataSet(archArtistPop, archArtistInfluence, lyricalComplexDf, musicComplexDf, TRUE)
 #artistMetricDf
 
 #artistMetricDf %>%
@@ -174,67 +175,62 @@ All of the previously created functionality should be able to be applied to any 
 ```{r}
 #Need to pass artist, and valid albs 
 
-maroon5Metrics = completeArchDf("Maroon 5", c("Adam Levine", "Jesse Carmichael", "Mickey Madden", "James Valentine", "Matt Flynn", "PJ Morton", "Sam Farrar", "Ryan Dusick"), c("Red Pill Blues + (Deluxe)", "v (Deluxe)", "Overexposed Track by Track", "Hands all over (Deluxe)", "it Won't be Soon Before Long.", "Songs About Jane"), c()) #May be 2 versions of girls like you - one with rap and one without
-maroon5Metrics
-unique(maroon5Metrics$Label)
+maroon5Metrics = completeArchDf("Maroon 5", c("Adam Levine", "Jesse Carmichael", "Mickey Madden", "James Valentine", "Matt Flynn", "PJ Morton", "Sam Farrar", "Ryan Dusick"), c("Red Pill Blues + (Deluxe)", "v (Deluxe)", "Overexposed Track by Track", "Hands all over (Deluxe)", "it Won't be Soon Before Long.", "Songs About Jane"), c(), TRUE) #May be 2 versions of girls like you - one with rap and one without
+singleArtistVisual("Maroon 5",maroon5Metrics)
 ```
 
 From the simple linear regressions of each of the three metrics against the release date of all of Maroon 5's charting songs, it seems there was a moderate decrease in their song complexity, a slight increase in their song popularity, and drastic increase in outside influence to their music as time passed. 
 
 
 ```{r}
-justinTimberlakeMetrics = completeArchDf("Justin Timberlake", c("Justin Timberlake"), c("Justified", "Man of the Woods", "The 20/20 Experience - 2 of 2 (Deluxe)", "The 20/20 Experience (Deluxe Version)", "Futuresex/Lovesounds Deluxe Edition"), c())
+justinTimberlakeMetrics = completeArchDf("Justin Timberlake", c("Justin Timberlake"), c("Justified", "Man of the Woods", "The 20/20 Experience - 2 of 2 (Deluxe)", "The 20/20 Experience (Deluxe Version)", "Futuresex/Lovesounds Deluxe Edition"), c(), TRUE)
 
-unique(justinTimberlakeMetrics$Label)
-justinTimberlakeMetrics
+singleArtistVisual("Justin Timberlake",justinTimberlakeMetrics)
 ```
 
 From the simple linear regressions of each of the three metrics against the release date of all of Justin Timberlake's charting songs, it seems there was a insignificant change in his song complexity, a very slight decrease in his song popularity, and a slight increase in outside influence to his music as time passed. 
 
 ```{r}
-twentyOnePilotsMetrics = completeArchDf("Twenty One Pilots", c("Tyler Joseph", "Josh Dun", "Nick Thomas", "Chris Salih"), c("Trench", "Blurryface","Vessel (with Bonus Tracks)", "Twenty One Pilots"), c("Cancer"))#Cancer was a cover so it is excluded even though it made the chart
-twentyOnePilotsMetrics
-unique(twentyOnePilotsMetrics$Label)
+twentyOnePilotsMetrics = completeArchDf("Twenty One Pilots", c("Tyler Joseph", "Josh Dun", "Nick Thomas", "Chris Salih"), c("Trench", "Blurryface","Vessel (with Bonus Tracks)", "Twenty One Pilots"), c("Cancer"), TRUE)#Cancer was a cover so it is excluded even though it made the chart
+singleArtistVisual("Twenty One Pilots", twentyOnePilotsMetrics)
 ```
 
 From the simple linear regressions of each of the three metrics against the release date of all of Twenty One Pilot's charting songs, it seems there was a very slight decrease in their song complexity, a slight decrease in their song popularity, and no change in outside influence to their music as time passed. 
 
 ```{r}
-fooFightersMetrics = completeArchDf("Foo Fighters", c("Dave Grohl", "Nate Mendel", "Pat Smear", "Taylor Hawkins", "Chris Shiflett", "Rami Jaffee", "William Goldsmith", "Franz Stahl"), c("Wasting Light", "Echoes, Silence, Patience & Grace", "In your Honor", "One by One (Expanded Edition)", "There is Nothing Left to Lose", "The Colour and the Shape", "Concrete and Gold", "Foo Fighters", "Sonic Highways"), c())
-fooFightersMetrics
-unique(fooFightersMetrics$Label)
+fooFightersMetrics = completeArchDf("Foo Fighters", c("Dave Grohl", "Nate Mendel", "Pat Smear", "Taylor Hawkins", "Chris Shiflett", "Rami Jaffee", "William Goldsmith", "Franz Stahl"), c("Wasting Light", "Echoes, Silence, Patience & Grace", "In your Honor", "One by One (Expanded Edition)", "There is Nothing Left to Lose", "The Colour and the Shape", "Concrete and Gold", "Foo Fighters", "Sonic Highways"), c(), TRUE)
+singleArtistVisual("Foo Fighters", fooFightersMetrics)
+
 ```
 
 From the simple linear regressions of each of the three metrics against the release date of all of the Foo Fighter's charting songs, it seems there was a significant increase in their song complexity, a significant decrease in their song popularity, and no change in outside influence to their music as time passed. 
 
 ```{r}
-taylorSwiftMetrics = completeArchDf("Taylor Swift", c("Taylor Swift"), c("Reputation", "1989 (Deluxe Edition)", "Red (Deluxe Edition)", "Speak Now (Deluxe Edition)", "Fearless (Platinum Edition)", "Taylor Swift"), c())
-taylorSwiftMetrics
-unique(taylorSwiftMetrics$Label)
+taylorSwiftMetrics = completeArchDf("Taylor Swift", c("Taylor Swift"), c("Reputation", "1989 (Deluxe Edition)", "Red (Deluxe Edition)", "Speak Now (Deluxe Edition)", "Fearless (Platinum Edition)", "Taylor Swift"), c(), TRUE )
+singleArtistVisual("Taylor Swift",taylorSwiftMetrics)
 ```
 
 From the simple linear regressions of each of the three metrics against the release date of all of Taylor Swift's charting songs, it seems there was slight decrease in her song complexity, a very slight increase in her song popularity, and a significant increase in outside influence to her music as time passed. 
 
 ```{r}
-justinBieberMetrics = completeArchDf("Justin Bieber", c("Justin Bieber"), c("Purpose (Deluxe)", "Journals", "Believe (Deluxe Edition)", "under the Mistletoe (Deluxe Edition)", "My World 2.0", "Never Say Never - The Remixes", "My World"), c())
-justinBieberMetrics
-unique(justinBieberMetrics$Label)
+justinBieberMetrics = completeArchDf("Justin Bieber", c("Justin Bieber"), c("Purpose (Deluxe)", "Journals", "Believe (Deluxe Edition)", "under the Mistletoe (Deluxe Edition)", "My World 2.0", "Never Say Never - The Remixes", "My World"), c(), TRUE)
+singleArtistVisual("Justin Bieber",justinBieberMetrics)
 ```
 
 From the simple linear regressions of each of the three metrics against the release date of all of Justin Bieber's charting songs, it seems there was a very slight increase in his song complexity, a slight increase in his song popularity, and an insignificant change in outside influence to his music as time passed. 
 
 ```{r}
-britneySpearsMetrics= completeArchDf("Britney Spears", c("Britney Spears"), c("Britney Jean (Deluxe Version)", "Femme Fatale (Deluxe Version)", "Circus (Deluxe Version)", "Blackout", "In the Zone", "Britney (Digital Deluxe Version)", "Oops!... i Did it Again", "...baby One more Time (Digital Deluxe Version)", "Glory (Deluxe Version)") ,c())
-britneySpearsMetrics
-unique(britneySpearsMetrics$Label)
+britneySpearsMetrics= completeArchDf("Britney Spears", c("Britney Spears"), c("Britney Jean (Deluxe Version)", "Femme Fatale (Deluxe Version)", "Circus (Deluxe Version)", "Blackout", "In the Zone", "Britney (Digital Deluxe Version)", "Oops!... i Did it Again", "...baby One more Time (Digital Deluxe Version)", "Glory (Deluxe Version)") ,c(), TRUE)
+singleArtistVisual("Britney Spears",britneySpearsMetrics)
 ```
 
 From the simple linear regressions of each of the three metrics against the release date of all of Taylor Swift's charting songs, it seems there was moderate increase in her song complexity, a very slight increase in her song popularity, and a moderate increase in outside influence to her music as time passed. 
 
 ```{r}
-jColeMetrics = completeArchDf("j Cole", c("j Cole"), c("Revenge of the Dreamers Iii", "Kod", "2014 Forest Hills Drive", "Cole World: The Sideline Story", "4 your Eyez Only", "Born Sinner", "The Blow Up"), c())
-jColeMetrics
-unique(jColeMetrics$Label)
+jColeMetrics = completeArchDf("j Cole", c("j Cole"), c("Revenge of the Dreamers Iii", "Kod", "2014 Forest Hills Drive", "Cole World: The Sideline Story", "4 your Eyez Only", "Born Sinner", "The Blow Up"), c(), TRUE)
+singleArtistVisual("j Cole", jColeMetrics)
+
+
 ```
 
 From the simple linear regressions of each of the three metrics against the release date of all of J Cole's charting songs, it seems there was moderate increase in his song complexity, a moderate decrease in his song popularity, and a decrease in outside influence to his music as time passed. 
@@ -256,7 +252,7 @@ summary(lm(pop1~ totalComplexity*label2,data= maroon5Metrics))
 ```
 
 
-#### Number of Outside Writers vs Complexity
+### Number of Outside Writers vs Complexity
 ```{r}
 summary(lm(totalComplexity~nonBandMemberWriters,data = maroon5Metrics))
 
@@ -322,6 +318,41 @@ chart.Correlation(allArtistMetricsSub[c("lyricalComplexity", "musicalComplexity"
 ## Artist Comparisons 
 Now artists will be compared to one another based on unstandardized values. 
 ```{r}
+maroon5Reg = completeArchDf("Maroon 5", c("Adam Levine", "Jesse Carmichael", "Mickey Madden", "James Valentine", "Matt Flynn", "PJ Morton", "Sam Farrar", "Ryan Dusick"), c("Red Pill Blues + (Deluxe)", "v (Deluxe)", "Overexposed Track by Track", "Hands all over (Deluxe)", "it Won't be Soon Before Long.", "Songs About Jane"), c(), FALSE)
+maroon5Reg$Artist = "Maroon 5"
 
+taylorSwiftReg = completeArchDf("Taylor Swift", c("Taylor Swift"), c("Reputation", "1989 (Deluxe Edition)", "Red (Deluxe Edition)", "Speak Now (Deluxe Edition)", "Fearless (Platinum Edition)", "Taylor Swift"), c(), FALSE )
+taylorSwiftReg$Artist = "Taylor Swift"
+
+fooFightersReg = completeArchDf("Foo Fighters", c("Dave Grohl", "Nate Mendel", "Pat Smear", "Taylor Hawkins", "Chris Shiflett", "Rami Jaffee", "William Goldsmith", "Franz Stahl"), c("Wasting Light", "Echoes, Silence, Patience & Grace", "In your Honor", "One by One (Expanded Edition)", "There is Nothing Left to Lose", "The Colour and the Shape", "Concrete and Gold", "Foo Fighters", "Sonic Highways"), c(), FALSE)
+fooFightersReg$Artist = "Foo Fighters"
+
+jColeReg = completeArchDf("j Cole", c("j Cole"), c("Revenge of the Dreamers Iii", "Kod", "2014 Forest Hills Drive", "Cole World: The Sideline Story", "4 your Eyez Only", "Born Sinner", "The Blow Up"), c(), FALSE)
+jColeReg$Artist = "J Cole"
+
+justinTimberlakeReg = completeArchDf("Justin Timberlake", c("Justin Timberlake"), c("Justified", "Man of the Woods", "The 20/20 Experience - 2 of 2 (Deluxe)", "The 20/20 Experience (Deluxe Version)", "Futuresex/Lovesounds Deluxe Edition"), c(), FALSE)
+justinTimberlakeReg$Artist = "Justin Timberlake"
+
+
+artistCompare = function(artistDfs){
+  fullDf = bind_rows(artistDfs)
+  artists = unique(fullDf$Artist)
+  artist1 = paste(artists[-length(artists)], collapse = ", ")
+  artist2 = tail(artists, n= 1)[[1]]
+  #Visualize
+  popPlot = ggplot(fullDf, aes(x = ReleaseDate, y = pop1, color = Artist, shape = Artist)) + geom_smooth(method = "lm",se = FALSE)+ geom_point(alpha= 0.5) + labs(x = "Release Date", y = "Popularity Metric (AU)") + theme(axis.title =element_text(size=9))
+  compPlot= ggplot(fullDf, aes(x = ReleaseDate, y = lyricalComplexity, color = Artist, shape = Artist)) + geom_smooth(method = "lm", se = FALSE)+ geom_point(alpha= 0.5) + labs(x= "Release Date",y = "Lyrical Complexity Metric (AU)")+ theme(axis.title =element_text(size=9))
+  infPlot = ggplot(fullDf, aes(x = ReleaseDate, y = nonBandMemberWriters, color = Artist, shape = Artist)) + geom_smooth(method = "lm", se = FALSE)+ geom_point(alpha= 0.5) + labs(x= "Release Date",y = "Number of Outside Writers") + theme(axis.title =element_text(size=9))
+  grid.arrange(popPlot, compPlot, infPlot, ncol = 2, nrow = 2, top = textGrob(paste("Popularity, Lyrical Complexity, and Outside Influence of ", artist1, " and ", artist2, " Songs Over Time"), gp = gpar(fontsize = 10)))
+  
+  #Statistical Comparison
+  linear = lm(pop1 ~ Artist/ReleaseDate-1, data = fullDf)
+  summary(linear)
+  
+}
+
+artistCompare(list(maroon5Reg, fooFightersReg, justinTimberlakeReg))
+artistCompare(list(fooFightersReg, jColeReg))
+artistCompare(list(maroon5Reg, taylorSwiftReg))
 ```
 
