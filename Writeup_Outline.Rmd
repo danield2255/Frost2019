@@ -6,6 +6,12 @@ output: html_document
 
 Note:  This should be written in article style - i.e., use "we" not "I".  Do not try to be overly formal, but of course, do use complete sentences and proper grammar.
 
+Brevity is good!  Think about what your main takeaway message is of each subsection, and stick to it.   (You are already very good at this!)
+
+Lots of plots and figures is fine; but again, better to have one plot that tells a clear story than many plots that need to be understood together.
+
+I vaguely expect this to be around 5 pages - however, it may be much longer if you include many plots/tables/lists, and that's completely okay!
+
 ## Abstract
 
 One longish paragraph summarizing the contributions of this paper. Good advice for abstract writing can be found here: https://writingcenter.gmu.edu/guides/writing-an-abstract
