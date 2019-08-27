@@ -327,32 +327,50 @@ taylorSwiftReg$Artist = "Taylor Swift"
 fooFightersReg = completeArchDf("Foo Fighters", c("Dave Grohl", "Nate Mendel", "Pat Smear", "Taylor Hawkins", "Chris Shiflett", "Rami Jaffee", "William Goldsmith", "Franz Stahl"), c("Wasting Light", "Echoes, Silence, Patience & Grace", "In your Honor", "One by One (Expanded Edition)", "There is Nothing Left to Lose", "The Colour and the Shape", "Concrete and Gold", "Foo Fighters", "Sonic Highways"), c(), FALSE)
 fooFightersReg$Artist = "Foo Fighters"
 
+twentyOnePilotsReg = completeArchDf("Twenty One Pilots", c("Tyler Joseph", "Josh Dun", "Nick Thomas", "Chris Salih"), c("Trench", "Blurryface","Vessel (with Bonus Tracks)", "Twenty One Pilots"), c("Cancer"), FALSE)#Cancer was a cover so it is excluded even though it made the chart
+twentyOnePilotsReg$Artist = "Twenty One Pilots"
+
 jColeReg = completeArchDf("j Cole", c("j Cole"), c("Revenge of the Dreamers Iii", "Kod", "2014 Forest Hills Drive", "Cole World: The Sideline Story", "4 your Eyez Only", "Born Sinner", "The Blow Up"), c(), FALSE)
 jColeReg$Artist = "J Cole"
 
 justinTimberlakeReg = completeArchDf("Justin Timberlake", c("Justin Timberlake"), c("Justified", "Man of the Woods", "The 20/20 Experience - 2 of 2 (Deluxe)", "The 20/20 Experience (Deluxe Version)", "Futuresex/Lovesounds Deluxe Edition"), c(), FALSE)
 justinTimberlakeReg$Artist = "Justin Timberlake"
 
+justinBieberReg = completeArchDf("Justin Bieber", c("Justin Bieber"), c("Purpose (Deluxe)", "Journals", "Believe (Deluxe Edition)", "under the Mistletoe (Deluxe Edition)", "My World 2.0", "Never Say Never - The Remixes", "My World"), c(), FALSE)
+justinBieberReg$Artist = "Justin Bieber"
 
-artistCompare = function(artistDfs){
-  fullDf = bind_rows(artistDfs)
-  artists = unique(fullDf$Artist)
-  artist1 = paste(artists[-length(artists)], collapse = ", ")
-  artist2 = tail(artists, n= 1)[[1]]
-  #Visualize
-  popPlot = ggplot(fullDf, aes(x = ReleaseDate, y = pop1, color = Artist, shape = Artist)) + geom_smooth(method = "lm",se = FALSE)+ geom_point(alpha= 0.5) + labs(x = "Release Date", y = "Popularity Metric (AU)") + theme(axis.title =element_text(size=9))
-  compPlot= ggplot(fullDf, aes(x = ReleaseDate, y = lyricalComplexity, color = Artist, shape = Artist)) + geom_smooth(method = "lm", se = FALSE)+ geom_point(alpha= 0.5) + labs(x= "Release Date",y = "Lyrical Complexity Metric (AU)")+ theme(axis.title =element_text(size=9))
-  infPlot = ggplot(fullDf, aes(x = ReleaseDate, y = nonBandMemberWriters, color = Artist, shape = Artist)) + geom_smooth(method = "lm", se = FALSE)+ geom_point(alpha= 0.5) + labs(x= "Release Date",y = "Number of Outside Writers") + theme(axis.title =element_text(size=9))
-  grid.arrange(popPlot, compPlot, infPlot, ncol = 2, nrow = 2, top = textGrob(paste("Popularity, Lyrical Complexity, and Outside Influence of ", artist1, " and ", artist2, " Songs Over Time"), gp = gpar(fontsize = 10)))
-  
-  #Statistical Comparison
-  linear = lm(pop1 ~ Artist/ReleaseDate-1, data = fullDf)
-  summary(linear)
-  
-}
+britneySpearsReg= completeArchDf("Britney Spears", c("Britney Spears"), c("Britney Jean (Deluxe Version)", "Femme Fatale (Deluxe Version)", "Circus (Deluxe Version)", "Blackout", "In the Zone", "Britney (Digital Deluxe Version)", "Oops!... i Did it Again", "...baby One more Time (Digital Deluxe Version)", "Glory (Deluxe Version)") ,c(), FALSE)
+britneySpearsReg$Artist = "Britney Spears"
 
-artistCompare(list(maroon5Reg, fooFightersReg, justinTimberlakeReg))
+
+#All unstandardized
 artistCompare(list(fooFightersReg, jColeReg))
 artistCompare(list(maroon5Reg, taylorSwiftReg))
+artistCompare(list(britneySpearsReg, justinBieberReg))
+artistCompare(list(twentyOnePilotsReg, justinTimberlakeReg))
+
 ```
 
+What defines what archetypes? 
+-Sellout : Was complex in their field and lost complexity to potentially gain popularity, increased a lot of outside influence
+
+-Pop Product: Entered the industry with a lower baseline complexity and high popularity, always had great outside influence
+
+-The Rebel: Maintained or increased complexity while popularity suffered, no particular influence amount
+
+-The Reinvention: Raised complexity while raising or maintaining popularity, no particular influence amount
+
+
+So of the example artists, who fits into what archetype?
+The "Sellouts": Maroon 5, Taylor Swift
+  Maroon 5 had the starkest positive increase in outside writers, and the greatest increase in popularity. The graphic above shows a slight decrease in lyrical complexity, but their decrease in musical complexity causes a steeper decrease in total complexity. Taylor Swift had a decrease in total complexity and an increase in outside influence, but only a very slight increase in popularity. This perhaps means that her music is supportive of a different popularity arch or that her "selling out" just did not pay off as much as Maroon 5. 
+  
+The "Pop Products": Justin Bieber, (Justin Timberlake?):
+  Justin Bieber always had significant influence and saw a very slight rise in complexity, but a greater rise in popularity. Justin Timberlake may be considered a pop product with a different outcome. He has had consistent outside influence and a decrease in popularity, and an increase in lyrical complexity. 
+
+The "Rebels": Foo Fighters, J Cole
+  Both the Foo Fighters and J Cole had a general decrease in popularity reasonably strong increases in lyrical complexity over time. The music data on the foo fighters also saw an increase in complexity over time. The Foo Fighers didn't ever have outside influence on their songs, while J Cole has seen some heavy influence on charting songs, this number has decreased.
+  
+The "Reinventions": Twenty One Pilots, (Britney Spears)
+  Twenty One Pilots saw a decrease in complexity and popularity over time, but never had any outside influence, so though there is a change, it did not take from the aritst's sole ability to create. Britney Spears may be a reinvention because though she had consistent outside influence and even an increase in it over time, she also had an increase in complexity with only slight popularity gain. However due to the influence factor it is possible she could be a pop product. 
+  

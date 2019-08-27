@@ -403,3 +403,21 @@ singleArtistVisual = function(artist, fullMetric){
   summary(lm(fullMetric$totalComplexity~fullMetric$ReleaseDate))
   
 }
+
+
+artistCompare = function(artistDfs){
+  fullDf = bind_rows(artistDfs)
+  artists = unique(fullDf$Artist)
+  artist1 = paste(artists[-length(artists)], collapse = ", ")
+  artist2 = tail(artists, n= 1)[[1]]
+  #Visualize
+  popPlot = ggplot(fullDf, aes(x = ReleaseDate, y = pop1, color = Artist, shape = Artist)) + geom_smooth(method = "lm",se = FALSE)+ geom_point(alpha= 0.5) + labs(x = "Release Date", y = "Popularity Metric (AU)") + theme(axis.title =element_text(size=9))
+  compPlot= ggplot(fullDf, aes(x = ReleaseDate, y = lyricalComplexity, color = Artist, shape = Artist)) + geom_smooth(method = "lm", se = FALSE)+ geom_point(alpha= 0.5) + labs(x= "Release Date",y = "Lyrical Complexity Metric (AU)")+ theme(axis.title =element_text(size=9))
+  infPlot = ggplot(fullDf, aes(x = ReleaseDate, y = nonBandMemberWriters, color = Artist, shape = Artist)) + geom_smooth(method = "lm", se = FALSE)+ geom_point(alpha= 0.5) + labs(x= "Release Date",y = "Number of Outside Writers") + theme(axis.title =element_text(size=9))
+  grid.arrange(popPlot, compPlot, infPlot, ncol = 2, nrow = 2, top = textGrob(paste("Popularity, Lyrical Complexity, and Outside Influence of ", artist1, " and ", artist2, " Songs Over Time"), gp = gpar(fontsize = 10)))
+  
+  #Statistical Comparison
+  linear = lm(pop1 ~ Artist/ReleaseDate-1, data = fullDf)
+  summary(linear)
+  
+}
