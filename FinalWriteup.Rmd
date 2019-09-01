@@ -1,0 +1,341 @@
+---
+title: "Final Frost 2019: Writeup "
+author: "Daniel DeFoe"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+library(ggrepel)
+library(grid)
+library(htmltools)
+library(tidyverse)
+library(tidytext)
+library(data.table)
+library(plyr)
+library(quanteda)
+library(kableExtra)
+library(knitr)
+library(gridExtra)
+library(formattable)
+library(psych)
+library(PerformanceAnalytics)
+
+source("frostFunctions.R")
+```
+
+```{r}
+allArtistReg = read_csv("FrostData/allArtistReg.csv")
+
+billboardDf = read_csv("FrostData/billboardDataClean.csv", col_types = cols())
+spotifyDf = read_csv("FrostData/spotifyDataClean.csv", col_types = cols())
+riaaDf = read_csv("FrostData/riaaDataClean.csv", col_types = cols())
+grammyDf = read_csv("FrostData/grammyDataClean.csv", col_types = cols())
+songSecsDf = read_csv("FrostData/songSectionDataClean.csv", col_types = cols())
+songAttrsDf = read_csv("FrostData/songAttrsDataClean.csv", col_types = cols())
+```
+
+## Abstract
+  Writing a song can be likened to simply making a series of choices, and just like any other decision-making process, one can make the common or popular choice, or instead something unique. So this begs the question: do less popular choices in songwriting yield less popular songs? Dependent upon how true this is, then there could be an algorithmic process to writing popular songs, in which case the integrity of musical art is subject to industry danger. For these reasons it is worth exploring if music industry forces have an effect on an artists musical content over time. If there are industry measures being taken to make music fit a particular mold in order to increase popularity, that makes a profoundly dismal statement about appreciation and freedom of artistry. Studying this could give a warning to music listeners that art is being treated more as an assembly-line product.
+
+
+## Introduction
+  John Seabrook's "The Song Machine: Inside the Hit Factory" portrays the modern music industry as a machine which has been programmed to make money and breed songwriters and artists to make uniform choices in order to maintain some success algorithm. The book claims "[a] common problem hit factories suffer is that the balance of power between the artists and the writers and producers tends to change over time," suggesting that the relationships between artists and music business entities can alter over time, potentially being driven by different motives. So one might ask if in all of this volatility and evolution in the relationships that the music is affected? The industry norms that the book suggests can be considered and studied in the context of data by finding ways to measure the popularity, complexity, and outside influence on a song. Ultimately, this data can be used to try to answer the question “What is the effect over time of music industry influence on musical artists, in terms of musical content?”
+  
+  Subjective measures will be difficult to quantify reliably but there is evidence in pre-existing data which can help make some strong arguments. Essentially, just because a right answer cannot be verified, this does not mean that attempts can't help make valid conclusions. Scaling results to the entire music industry will be difficult and impractical, but a look into some case study artists will give some insights to how choices to make complex music can affect popularity, and potentially how outside influence can affect both complexity and popularity. Perhaps with these relationships explored, then the long term effect of music industry influence on music content can be better defined. 
+  
+
+
+## Data Collection
+  The first step was to collect data that was perceived as relevant at the time. Not all data was used, but the steps taken to attain it are documented below. 
+  1. The functions to get the Billboard Hot 100 ranking data as well as the song lyric data from "Genius.com" were already created by Charlie Lui. (this is his last name correct?) Only minor adjustments were made to these functions. 
+  2. From Spotify, first we collected data on artists, to see who qualified to be considered for the study. To qualify, an artist must have: 
+    - appeared on the Billboard Hot 100 in the last 20 years
+    - released at least 3 albums
+    - released their first album at least 7 years ago
+  If an artist met these criteria, then there was evidence to argue that they had tenure in the music industry, and had been decently exposed to music industry forces. Here there was the limitation of not being able to always effectively count studio albums because Spotify brought all re-releases and live albums. For all of the following sources, only songs by artists who had met the above criteria were included. 
+  3. Spotify provided both the top 200 streamed songs by week as well as the song metadata including their metrics of subjective song attributes such as "energy" and "dancability"
+  4. Grammy winners of most individual song categories were collected with functionality to specify how far back we wanted to collect data for
+  5. Certifications of songs (gold, platinum, etc) were collected from the official source of these certifications, the Recording Industry Association of America at "riaa.com"
+  6. The music data was collected from a forum based website called "ultimate-guitar.com" where chord progressions were posted. This data was strongly utilized in the study, but also suffered a few limitations. Because the site was a forum, the way that the data was kept was not always consistent, and the program would only take data which could be validated to match a specific form. This coupled with the fact that this was a guitarist based forum and some genres of music were not equally represented, there was a lot of missing data. 
+
+## Quantifying a song
+  With the data gathered, the next step was to be able to measure the subjective elements of popularity, complexity, and outside influence quantitatively. This presented challenges because there are many ways which a song could be considered complex or popular, and it is not really possible to be completely sure how organically a song was created by an artist. Despite these challenges, our best effort can get us pretty far, and as long as limitations are kept in mind along with the fact that the approach taken is just one way of thinking, then the conclusions are very worth attaining through these methods. Other approaches could yield different conclusions as subjectivity is hard to quantify, the limitations of this work could be amended in future studies to improve the validity of the conclusions pulled. 
+
+
+### Popularity
+  Quantifying popularity is subjective, but a metric will be used that accounts for the each week's position on the chart scaled by the number of weeks it has been on the charts. This rewards longevity on the charts, and heavily rewards higher positions. This will be 
+  $$pop1 = \sum(\frac{weeksOnBillboard}{currentBillboardRank})$$
+For each week the current spot is scaled by the number of weeks the song has been on the charts to that point, and have the scaled value at all weeks summed.
+```{r}
+#plot of pop1 distribution
+ggplot(allArtistReg, aes(x = pop1))+ geom_histogram(binwidth = 5) +labs(title = "Distribution of Pop1 Scores")
+```
+
+  Other metrics were considered and they while they were not chosen to be applied to the rest of the study, they are documented below. 
+  
+  The second metric was just a variation of the first one that did not scale by the number of weeks the song had been on the charts to that point. It was expressed as  
+  $$pop2 = \sum(\frac{1}{currentBillboardRank})$$
+  This was not chosen because we believed that week tenure did matter more than considering each week equally.
+```{r}
+ggplot(allArtistReg, aes(x = pop2))+ geom_histogram(binwidth = 1) +labs(title = "Distribution of Pop2 Scores")
+```
+
+  The third metric used only the peak position on the chart but took measures to not consider the number 2 spot on the chart as half the worth of the 1st spot, and measure each position at an equal distance from the next position. This metric did not consider longevity at all. This was 
+  $$pop3 = ln(101.1-min(peakPosition))$$
+  This metric just took the log scale value of the peak position of the song on charts. This was not chosen because it does not consider the longevity or path through the charts which a song takes.
+```{r}
+ggplot(allArtistReg, aes(x = pop3))+ geom_histogram(binwidth = 0.1) +labs(title = "Distribution of Pop3 Scores")
+```
+
+  The fourth and final popularity metric takes the same approach as the third to scale the values on the Hot 100 closer to one another, but then averages all of these values across all the weeks the song is on the charts. This is
+$$pop4 = mean(ln(101.1-currentBillboardRank))$$
+  This metric took the average of all of the log scaled ranks across weeks. This was not chosen because while it considers more than the third metric, it also has an upper bound, and popularity does not necessarily need to be positively bounded.
+```{r}
+ggplot(allArtistReg, aes(x = pop4))+ geom_histogram(binwidth = 0.1) +labs(title = "Distribution of Pop4 Scores")
+```
+
+  We ultimately chose the pop1 because it considers longevity and life path on the charts. This metric also uses a scale which makes greater rankings increasing valuable at a disproportional rate towards the top. It is actually appropriate to use this scale because only one spot can occupy each spot, so to for example, achieve the top spot should be more valuable than the second spot by a greater margin than achieving the second spot in comparison to the third. 
+```{r}
+popSep = allArtistReg %>% gather(key = "popMetric", value = "Score", pop1:pop4)
+ggplot(popSep, aes(x= popMetric, y = Score)) + geom_boxplot()+ coord_cartesian(ylim = c(0, 20)) + labs(title = "Distributions of each Popularity Metric")
+```
+  
+  As shown in the boxplots above, (excluding many great outlier values of pop1), there are rather low median values of pop1 and pop2, and greater median values of pop3 and pop4 and seemingly unbounded ranges on pop1 and pop2, whereas there are bounded ranges on pop3 and pop4. There is more support for pop1 in this because while popularity is not something to be bounded low, it should be considered upper range exclusive as only one song can hold each rank at any single time. 
+  
+
+### Complexity
+  A song's complexity was determined by both lyrical and musical complexity. The music data however, as previously mentioned, was not present for all songs. Both lyrical and musical complexity were standardized by artist and then added together. This equation is totalComplexity = std(lyricalComplexity) + std(musicalComplexity)
+  The lyrical complexity of songs was based on average word length, average number of syllables, and the amount of repetition in the song. This equation can be expressed as
+  $$lyricalComplexity = 1.5(avgWordLen) + avgSyllables + 2(UniqueToTotalRatio)+ wordsPerSec $$
+  This means that we are considering the measure of repetition measured in the unique to total ratio as the most important factor in determining lyrical complexity, followed by the average word length, then by the average number of syllables and words per second. 
+  
+```{r}
+ggplot(allArtistReg, aes(x = lyricalComplexity))+ geom_histogram(binwidth = 0.1) +labs(title = "Distribution of Lyrical Complexity Scores")
+```
+  
+  The musical complexity of songs was based on the number of unique chords in the song, number unexpected chords in basic popular music, and number of sections in the song which end differently than they progress. This equation can be expressed as 
+  $$musicalComplexity =  2(nonDiatonicChords) + extendedChords + 2(numUniqueChords) + endDif$$
+  This means that we are considering the count of non-diatonic chords and the number of unique chords as twice as important as the number of extended chords or different ends to sections. This is because non-diatonic chords show up more rarely in most music and also the total number of unique chords a song is composed of defines its musical depth. 
+```{r}
+ggplot(allArtistReg, aes(x = musicalComplexity))+ geom_histogram(binwidth = 1) +labs(title = "Distribution of Musical Complexity Scores")
+```
+
+
+## Case Study: Maroon 5
+The band Maroon 5 will be singled out and analyzed in the study to learn about their changes over time which could hopefully explain their journey from a previously hard-to-define, versatile group to a pop superpower. 
+```{r}
+archArtist = artistDataJoiner("Maroon 5")
+validAlbums = c("Red Pill Blues + (Deluxe)", "v (Deluxe)", "Overexposed Track by Track", "Hands all over (Deluxe)", "it Won't be Soon Before Long.", "Songs About Jane")
+
+archArtist = filter(archArtist, Album %in% validAlbums)
+#Need to adjust an incorrect data point
+archArtist[archArtist$Name %like% "If i Never See your Face Again", "Album"] = "it Won't be Soon Before Long."
+#archArtist
+```
+
+### Popularity Measure
+```{r, warning=FALSE}
+archArtistPop = getPopularityMetric(archArtist)
+#archArtistPop
+
+ggplot(archArtistPop, aes(x = ReleaseDate, y = pop1, label= Name)) + geom_label_repel(data = subset(archArtistPop, pop1 > 100), box.padding   = 0.35, point.padding = 0.5, segment.color = 'grey50') + theme_classic(base_size = 10) + geom_point(aes(color = Album)) + geom_smooth(,method = "lm") + labs(title = "Pop1 of Maroon 5 Songs By Release Date", y = "Pop1 Score", x = "Release Date")
+
+```
+
+By the popularity metric made, there is an indication of a slight increase in the level of popularity in the Maroon 5's charting songs as time increases. "Girls Like you" is looked at as by far the most popular, but perhaps it should be, with a 52 week tenure on the charts, and a reasonable long run at number 1. 
+
+### Measure Outside Influence
+```{r, warning=FALSE}
+maroon5Members= c("Adam Levine", "Jesse Carmichael", "Mickey Madden", "James Valentine", "Matt Flynn", "PJ Morton", "Sam Farrar", "Ryan Dusick")
+
+archArtistInfluence = getOutsideInfluenceScore(archArtist, maroon5Members)
+#archArtistInfluence
+
+
+ggplot(archArtistInfluence, aes(x = ReleaseDate, y = nonBandMemberWriters, color = Album, label = Name)) + geom_point() + labs(title = "Number of non-Band Member Writers on Maroon 5's Songs Over Time", y = "Number of Non-Bandmember Writers", x = "Release Date")
+```
+
+It is apparent that all of Maroon 5's Billboard Hot 100 charting songs were written completely and solely by members of Maroon 5 until just before 2015. After this point, all the charting songs have multiple writing credits given to writers not in Maroon 5. This suggests increased outside influence in the band's more recent music. 
+
+### Measure of Lyrical Complexity
+```{r}
+lyricalComplexDf = getLyricalComplexity(archArtist, TRUE)
+#lyricalComplexDf
+
+lyricalComplexDf = lyricalComplexDf[-21,]
+
+ggplot(lyricalComplexDf, aes(x = ReleaseDate, y = lyricalComplexity, label = Name)) + geom_point(aes(color = Album)) + geom_label_repel(data = subset(lyricalComplexDf, lyricalComplexity > 2 | lyricalComplexity < -4), box.padding   = 0.35, point.padding = 0.5, segment.color = 'grey50', nudge_y = ifelse(subset(lyricalComplexDf, lyricalComplexity > 2 | lyricalComplexity < -4)$lyricalComplexity > 2, 5, -1)) + theme_classic(base_size = 10) + geom_smooth(method = "lm") + labs(title = "Lyrical Complexity of Maroon 5 Songs by Release Date", y = "Standardized Lyrical Complexity", x = "Release Date")
+```
+
+When the lyrical complexity of Maroon 5's Billboard charting songs are plotted against time, it is apparent that there is a negative association between lyrical complexity and time for Maroon 5 charting songs. By far the least lyrically complex song was one of the more recent, "What Lovers Do" in 2017 and the most lyrically complex was "Harder to Breathe" from 2002. 
+
+### Measure of Musical Complexity
+```{r}
+musicComplexDf = getMusicComplexity(archArtist, TRUE)
+#musicComplexDf
+combine_df <- full_join(musicComplexDf, archArtistInfluence) %>%
+  drop_na()
+
+ggplot(combine_df, aes(x = ReleaseDate, 
+                           y = musicalComplexity, 
+                           label = Name)) +
+  geom_point(aes(color = Album, size = nonBandMemberWriters)) + 
+  geom_label_repel(data = combine_df, 
+                   box.padding   = 0.35, 
+                   point.padding = 0.5, 
+                   segment.color = 'grey50', 
+                   nudge_y       = ifelse(combine_df$musicalComplexity > 0, 5, -10),
+                   direction = "x") + 
+  theme_classic(base_size = 10) + 
+  geom_smooth(method = "lm") + 
+  labs(title = "Musical Complexity of Maroon 5 Songs By Release Date", 
+       y = "Standardized Musical Complexity", 
+       x = "Release Date") +
+  scale_size_continuous(name = "Number of Non-Band-Member Writers")
+```
+
+There is less music chord data to go off of, but what is there shows Maroon 5 as scoring lower musical complexity scores in their later released songs in comparison to their earlier released material. Again "Harder to Breathe" is considered the most complex musically. 
+
+
+```{r}
+artistMetricDf = fullMetricsDataSet(archArtistPop, archArtistInfluence, lyricalComplexDf, musicComplexDf, TRUE)
+#artistMetricDf
+
+#artistMetricDf %>%
+#  select(Name, pop1, pop2, pop3, pop4) %>%
+#  gather(key = "Metric", value = "Score", -Name) %>%
+#  ggplot(aes(x = Name, y = Score, fill = Metric)) + geom_col(position = "dodge") + labs(title = "Comparison of Popularity Metrics Across Maroon 5 Billboard Hot 100 Songs") + theme(axis.text.x = element_text(angle = 90))
+```
+
+
+### Comparisons of Label Difference
+
+From what has been seen so far, it seems that the popularity of Maroon 5 songs has generally risen and complexity has generally decreased as time has passed. The band made all songs internally until about 2012, a point from which they actually started to have a great number of cowriters on projects more and more. They never again had a charting song written without an outside writer. Maybe this could be in part to them switching labels in 2014! When the periods of songwriting are separated, this is the result. 
+
+```{r}
+#Need to pass artist, and valid albs 
+
+#completeArchDf(, c("Adam Levine", "Jesse Carmichael", "Mickey Madden", "James Valentine", "Matt Flynn", "PJ Morton", "Sam Farrar", "Ryan Dusick"), c("Red Pill Blues + (Deluxe)", "v (Deluxe)", "Overexposed Track by Track", "Hands all over (Deluxe)", "it Won't be Soon Before Long.", "Songs About Jane"), c()) #May be 2 versions of girls like you - one with rap and one without
+artist = "Maroon 5"
+validAlbs = c("Red Pill Blues + (Deluxe)", "v (Deluxe)", "Overexposed Track by Track", "Hands all over (Deluxe)", "it Won't be Soon Before Long.", "Songs About Jane")
+members = c("Adam Levine", "Jesse Carmichael", "Mickey Madden", "James Valentine", "Matt Flynn", "PJ Morton", "Sam Farrar", "Ryan Dusick")
+
+artistDf = artistDataJoiner(artist) %>% 
+    filter(!is.na(BillboardWeekRank) & Album %in% c(validAlbs, NA))
+  archArtistPop = getPopularityMetric(artistDf)
+  archArtistInfluence = getOutsideInfluenceScore(artistDf, members)
+  lyricalComplexDf = getLyricalComplexity(artistDf, TRUE)
+  musicComplexDf = getMusicComplexity(artistDf, TRUE)
+  artistMetricDf = fullMetricsDataSet(archArtistPop, archArtistInfluence, lyricalComplexDf, musicComplexDf, TRUE)
+  relDateDf = artistDf %>% select(Name, ReleaseDate)
+  fullMetric = merge(relDateDf, artistMetricDf, by =c("Name", "ReleaseDate"))
+  #Fill musical complexity NAs with 0 because it is standardized
+  fullMetric$musicalComplexity[is.na(fullMetric$musicalComplexity)] = 0
+  fullMetric$totalComplexity = fullMetric$lyricalComplexity + fullMetric$musicalComplexity
+  fullMetric = fullMetric %>% 
+    filter(complete.cases(.[,!names(.) %in% c("nonBandMemberWriters")])) %>%
+    distinct()
+  complexGraph = qplot(ReleaseDate, totalComplexity, group = ReleaseDate > "2014-01-01", geom = c("point", "smooth"), method = "lm", se = FALSE, data = fullMetric)+ labs(y = "Standardized Song Complexity", x = "Release Date") + geom_vline(xintercept = as.Date("2014-01-01"))
+
+  popGraph = qplot(ReleaseDate, pop1, group = ReleaseDate > "2014-01-01", geom = c("point", "smooth"), method = "lm", se = FALSE, data = fullMetric) +labs(y = "Standardized Pop Score", x = "Release Date")+ geom_vline(xintercept = as.Date("2014-01-01"))
+
+  infGraph = qplot(ReleaseDate, nonBandMemberWriters, group = ReleaseDate > "2014-01-01", geom = c("point", "smooth"), method = "lm", se = FALSE, data = fullMetric) + labs(y = "Number of Non-Artist Writers", x = "Release Date")+ geom_vline(xintercept = as.Date("2014-01-01"))
+
+
+  grid.arrange(complexGraph, popGraph, infGraph, ncol = 2, nrow = 2, top = paste(artist, "'s Song Popularity, Complexity, and Outside Influence Over Time"))
+```
+
+When Maroon 5 was on their first record label, A&M, they only had writing credits on charting songs for one album, "Overexposed", which was the last album they did for A&M. Some of the least complex songs were created under the new record label, mainly Interscope, with writing credits given to non band members on all of them. Their popularity was reasonably consistent other than "Girls Like you" which was far more popular than all their other songs. While there was decreased complexity in the charting songs which were released on Interscope, the complexity of their charting songs was already in decline from where it started in their first album. There is not a stark decrease in complexity after the record change, but rather a maintenance at the bottom. 
+
+### Comparisons by Album
+```{r}
+avgWritersByAlb = fullMetric %>%
+  group_by("Album") %>%
+  ddply(.,~Album, summarize, avgnumNonBandWriters = mean(nonBandMemberWriters, na.rm = TRUE), avgComplex = mean(totalComplexity, na.rm = TRUE), avgPop = mean(pop1, na.rm = TRUE))
+
+albums = c("Songs About Jane", "it Won't be Soon Before Long.", "Hands all over (Deluxe)", "Overexposed Track by Track", "v (Deluxe)", "Red Pill Blues + (Deluxe)")
+ggplot(avgWritersByAlb, aes(x = Album,y= avgPop, fill = avgComplex)) + geom_bar(stat = "identity")+ geom_text(size = 3, aes(label = paste("Avg ",avgnumNonBandWriters, " writers"),vjust=ifelse(avgPop > 0,-0.5,1))) +
+labs(title = "Average Popularity, Complexity, and Non-band Member Writers for each Maroon 5 Album", x = "Album", y = "Average Popularity", fill = "Average Complexity") + scale_x_discrete(limits = albums, labels = c("Songs About Jane", "It Won't be Soon Before Long", "Hands All Over", "Overexposed", "V", "Red Pill Blues")) + theme(axis.text.x = element_text(face="bold", angle=90), axis.text = element_text(size = 6)) + scale_fill_gradient(low="gray", high="red")
+```
+
+When looking at the data by album, it seems that the charting songs from their first album "Songs About Jane" were significantly more complex than their following works. The second album was less complex, but the third and fourth saw a resurgence in complexity, even with the the fourth album, "Overexposed" having a good number of outside co-writers on charting songs. Popularity was in noticeable decline until this point as well. After the band's label change, complexity turned to head to its lowest point. The charting songs on the "Red Pill Blues" album were on average the least complex and most popular, with songs averaging the most outside influence. 
+
+What story does this information tell, and what can it teach about modern music culture? For Maroon 5, maybe they became accustomed to working with outside writers, so once they started, it became part of their process. Also as they were better and better known or more popular among industry entities it is possible writers sought more and more to work with the band. As far as music culture, it looks like these extra songwriters knew pretty well how to increase the band's popularity to places it had not been. It is also a possibility that the way this popularity is achieved is to be less complex, or also somewhat possible that the tendencies of these writers also pushed towards being less complex. Time often instigates change, but for Maroon 5 changes on the planes of influence, popularity, and complexity reshaped their sound and image from when they began. With the band at arguably the most commercially popular place its been, it will be interesting to see where it goes from here.
+
+## Artist Archetypes
+  Maroon 5 and a selection of other artists who qualified for the study were all investigated as mini case study artists, and each of their popularities, complexities, and outside influence levels over time were compared and contrasted to one another. If artists had similar changes in these metrics, they could potentially be grouped, and it could then be interesting to see if these groups could be clearly separated from one another to form archetypes of some sort. The following had similar patterns in terms of the relationship between popularity and complexity and time. 
+
+* Maroon 5, Taylor Swift 
+* J Cole, Foo Fighters
+* All other artists, (Justin Timberlake, Twenty One Pilots, Justin Bieber, Britney Spears)
+&nbsp;
+Is there a significant difference between two main groups seen? Let us now look at standardized popularity and complexity over time for both groups on the same plot and test for significance for each of these metrics over time for both groups.
+```{r}
+allArtistMetrics = read_csv("FrostData/allArtistMetrics.csv")
+
+group1Artists = c("Maroon 5", "Taylor Swift")
+group2Artists = c("J Cole", "Foo Fighters")
+allArtistMetricsSub1= filter(allArtistMetrics, Artist %in% group1Artists)
+allArtistMetricsSub2= filter(allArtistMetrics, Artist %in% group2Artists)
+allArtistMetricsSub1["Group"] = "1"
+allArtistMetricsSub2["Group"] = "2"
+
+groupedArtists = rbind(allArtistMetricsSub1, allArtistMetricsSub2)
+
+#summary(lm(pop1 ~ ReleaseDate, data= allArtistMetricsSub1))
+#summary(lm(pop1 ~ ReleaseDate, data= allArtistMetricsSub2))
+
+#summary(lm(totalComplexity ~ ReleaseDate, data= allArtistMetricsSub1))
+#summary(lm(totalComplexity ~ ReleaseDate, data= allArtistMetricsSub2))
+
+ggplot(groupedArtists, aes(x= ReleaseDate, y = pop1, color= Group, shape =Group)) + geom_smooth(method= "lm") + geom_point() + labs(title = "Pop1 Score Over Time For Groups of Artists", x= "Release Date", y = "Standardized pop1 Score")
+
+ggplot(groupedArtists, aes(x= ReleaseDate, y = totalComplexity, color= Group, shape =Group)) + geom_smooth(method= "lm") + geom_point() + labs(title = "Total Song Complexity Score Over Time For Groups of Artists", x= "Release Date", y = "Standardized Total Complexity Score")
+```
+  In tests for significance of pop1 score and song release date for both groups, neither test has a p-value less than 0.05, but both are very close with regression slope estimates in opposite directions from each other. The p-value for Maroon 5 and Taylor Swift having a positive association between popularity and time is 0.0669, while the p-value for J Cole and the Foo Fighters having a negative association between popularity and time is 0.0861. Together, this serves as reasonable evidence that the groups have different associations between popularity and time to one another. 
+  For complexity, a similar result is received. Here, for Maroon 5 and Taylor Swift, a p-value of 0.00299 there is significant evidence that for these artists there is a negative association between complexity and time. Meanwhile, with a p-value of 0.0882, there may be weak evidence, but some indication that there exists a positive association between complexity and time the Foo Fighters and J Cole's music. 
+  
+  With some evidence that these two groups of artists can be separated from one another, we can give each a loose identity. Maroon 5 and Taylor Swift could in some senses be considered "the sellouts" as they allowed for a significant loss in complexity of their songs and ultimately gained popularity. Furthermore, they each started as somewhat niche artists and both ended up regressing to the pop genre. The Foo Fighters and J Cole could be considered "the rebels" as they both continued to create increasingly complex music despite a loss in popularity. 
+  
+  If more artists were added and compared, we may be likely to see more groups. Also if we were able to test for not just opposite relationships between time and each metrics, but perhaps just different extremities of this as well as moderate levels, then it would be possible to create more arguable archetypes. 
+
+
+
+## Conclusions
+  As far as overall relationships the study can pull about big relationships between popularity and complexity, the correlation matrices below can tell us how complexity is related to popularity by standardized by aritst. 
+```{r}
+allArtistMetricsSub = allArtistMetrics[allArtistMetrics$musicalComplexity != 0 ,]
+
+#corr.test(allArtistMetricsSub[c("totalComplexity", "pop1")])
+chart.Correlation(allArtistMetricsSub[c("totalComplexity", "pop1")])
+```
+  The correlation is not significant so while the data indicates a very slight negative correlation, there is not significant evidence to support that and artist's popularity is negatively correlated with their music's complexity. What about for data not standardized by artist? Could this yield different results?
+```{r}
+allArtistRegSub = allArtistReg[allArtistReg$musicalComplexity != 0 ,]
+#corr.test(allArtistRegSub[c("totalComplexity", "pop1")])
+chart.Correlation(allArtistRegSub[c("totalComplexity", "pop1")])
+```
+Again, the correlation is portrayed as being negative, but not with significance. Therefore, there is not sufficient evidence to support that there is a significant correlation between a song's overall complexity and its popularity.
+
+  So overall from the study, it has been seen that it can be difficult to quantify complicated subjective metrics, but that thoughtful efforts to do so can reveal relationships, trends, and groups which form a narrative of the music industry providing outside influence to a musical content in order to control its popularity. Maroon 5 was a perfect case of this concept in action. The band's musical and lyrical complexity dropped, they started incorporating a great number of outside co-writers on their songs, and the popularity saw a surge of growth. We were able to take Maroon 5 and liken them to Taylor Swift and ultimately separate them from another set of different artists, ultimately deeming them "sellouts". Meanwhile, on the other end of the spectrum, this contrasted group of J Cole and Foo Fighters both had significantly less outside influence, and over time increased each of their complexities while seeing the popularity of their music drop. These are isolated incidents, and this is a question which should be addressed on a greater scale, but the results of this study show how there may be reason for concern over the ability of true artists to be successful and independent solely on their own internally created works, as well as how music industry forces may be trying to grab increased control over content creators in order to manufacture popularity. 
+
+## Future Work
+  The knowledge gained from this project pushed the conversation forward in a number of directions and encourages the following questions:
+  -What tendencies do particular writers have lyrically or musically?
+  - Do particular labels try to change artists more than others?
+  - Do music industry forces try to push artists towards certain genres? 
+  - Is wordier(music with more lyrics) music more popular or less popular than more instrumental music?
+  - Do can we predict for newer artists what archetype they are most likely to be a part of?
+  -What are the properties of certain archetypes in the short and long term in terms of popularity and autonomy?
+
+## References
+Help with the best way to do this would be nice
+* How to reference Charlie's work
+* https://www.billboard.com/charts/hot-100
+* https://genius.com/
+* https://www.ultimate-guitar.com/
+* https://spotifycharts.com/regional/us/weekly
+* Spotify API
+* https://www.grammy.com/grammys/awards/61st-annual-grammy-awards
+* https://www.riaa.com/gold-platinum/

@@ -296,6 +296,8 @@ fooFightersMetrics$Artist = "Foo Fighters"
 
 allArtistMetrics = rbind(maroon5Metrics, justinTimberlakeMetrics, justinBieberMetrics, twentyOnePilotsMetrics, britneySpearsMetrics, jColeMetrics, taylorSwiftMetrics, fooFightersMetrics)
 allArtistMetrics
+
+write_csv(allArtistMetrics, "FrostData/allArtistMetrics.csv")
 ```
 
 Now do the same statistical investigation as done for just Maroon 5.
@@ -350,6 +352,36 @@ artistCompare(list(britneySpearsReg, justinBieberReg))
 artistCompare(list(twentyOnePilotsReg, justinTimberlakeReg))
 
 ```
+Artist Groups
+The following had similar patterns in terms of relationship between popularity and complexity and time. 
+
+-Maroon 5, Taylor Swift
+-jCole, Foo Fighters
+-All other artists, (Justin Timberlake, Twenty One Pilots, Justin Bieber, Britney Spears)
+Is there a significant difference between two main groups seen? 
+Lets look at standardized popularity and complexity over time for both groups on the same plot. 
+```{r}
+group1Artists = c("Maroon 5", "Taylor Swift")
+group2Artists = c("J Cole", "Foo Fighters")
+allArtistMetricsSub1= filter(allArtistMetrics, Artist %in% group1Artists)
+allArtistMetricsSub2= filter(allArtistMetrics, Artist %in% group2Artists)
+allArtistMetricsSub1["Group"] = "1"
+allArtistMetricsSub2["Group"] = "2"
+
+groupedArtists = rbind(allArtistMetricsSub1, allArtistMetricsSub2)
+groupedArtists
+summary(lm(pop1 ~ ReleaseDate, data= allArtistMetricsSub1))
+summary(lm(pop1 ~ ReleaseDate, data= allArtistMetricsSub2))
+
+summary(lm(totalComplexity ~ ReleaseDate, data= allArtistMetricsSub1))
+summary(lm(totalComplexity ~ ReleaseDate, data= allArtistMetricsSub2))
+
+ggplot(groupedArtists, aes(x= ReleaseDate, y = pop1, color= Group, shape =Group)) + geom_smooth(method= "lm") + geom_point() + labs(title = "Pop1 Score Over Time For Groups of Artists", x= "Release Date", y = "Standardized pop1 Score")
+
+ggplot(groupedArtists, aes(x= ReleaseDate, y = totalComplexity, color= Group, shape =Group)) + geom_smooth(method= "lm") + geom_point() + labs(title = "Total Song Complexity Score Over Time For Groups of Artists", x= "Release Date", y = "Standardized Total Complexity Score")
+```
+
+
 
 What defines what archetypes? 
 -Sellout : Was complex in their field and lost complexity to potentially gain popularity, increased a lot of outside influence
@@ -374,3 +406,32 @@ The "Rebels": Foo Fighters, J Cole
 The "Reinventions": Twenty One Pilots, (Britney Spears)
   Twenty One Pilots saw a decrease in complexity and popularity over time, but never had any outside influence, so though there is a change, it did not take from the aritst's sole ability to create. Britney Spears may be a reinvention because though she had consistent outside influence and even an increase in it over time, she also had an increase in complexity with only slight popularity gain. However due to the influence factor it is possible she could be a pop product. 
   
+  
+  
+Question: What is the relationship between music popularity and complexity? 
+```{r}
+allArtistReg = rbind(maroon5Reg, justinTimberlakeReg, justinBieberReg, twentyOnePilotsReg, britneySpearsReg, jColeReg, taylorSwiftReg, fooFightersReg)
+ggplot(allArtistMetrics, aes(y = pop1, x = totalComplexity)) + geom_point()+ geom_line()+ geom_smooth(method = "lm")
+
+
+ggplot(allArtistReg, aes(y = pop1, x = totalComplexity)) + geom_point()+ geom_line()+ geom_smooth(method = "lm")
+
+summary(lm(pop1 ~ totalComplexity, data = allArtistMetrics))
+
+summary(lm(pop1 ~ lyricalComplexity, data = allArtistReg))
+
+
+
+
+summary(lm(pop1~totalComplexity,data = allArtistReg))
+
+summary(lm(totalComplexity~nonBandMemberWriters,data = allArtistReg))
+
+summary(lm(pop1~nonBandMemberWriters,data = allArtistReg))
+
+allArtistRegSub = allArtistReg[allArtistReg$musicalComplexity != 0 ,]
+corr.test(allArtistRegSub[c("totalComplexity", "pop1")])
+chart.Correlation(allArtistRegSub[c("totalComplexity", "pop1")])
+write_csv(allArtistReg, "FrostData/allArtistReg.csv")
+```
+
