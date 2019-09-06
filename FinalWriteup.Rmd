@@ -72,16 +72,22 @@ This paper proceeds as follows:  First, we will establish how to collect evidenc
 
 ## Data Collection
   The first step was to collect data that was perceived as relevant at the time. Not all data was used, but the steps taken to attain it are documented below. 
-  1. The functions to get the Billboard Hot 100 ranking data as well as the song lyric data from "Genius.com" were already created by Charlie Liou.  Only minor adjustments were made to these functions. 
-  2. From Spotify, first we collected data on artists, to see who qualified to be considered for the study. To qualify, an artist must have: 
+  
+1. The functions to get the Billboard Hot 100 ranking data as well as the song lyric data from "Genius.com" were already created by Charlie Liou.  Only minor adjustments were made to these functions. 
+
+2. From Spotify, first we collected data on artists, to see who qualified to be considered for the study. To qualify, an artist must have: 
     - appeared on the Billboard Hot 100 in the last 20 years
     - released at least 3 albums
     - released their first album at least 7 years ago
   If an artist met these criteria, then there was evidence to argue that they had tenure in the music industry, and had been decently exposed to music industry forces. Here there was the limitation of not being able to always effectively count studio albums because Spotify brought all re-releases and live albums. For all of the following sources, only songs by artists who had met the above criteria were included. 
-  3. Spotify provided both the top 200 streamed songs by week as well as the song metadata including their metrics of subjective song attributes such as "energy" and "dancability"
-  4. Grammy winners of most individual song categories were collected with functionality to specify how far back we wanted to collect data for
-  5. Certifications of songs (gold, platinum, etc) were collected from the official source of these certifications, the Recording Industry Association of America at "riaa.com"
-  6. The music data was collected from a forum based website called "ultimate-guitar.com" where chord progressions were posted. This data was strongly utilized in the study, but also suffered a few limitations. Because the site was a forum, the way that the data was kept was not always consistent, and the program would only take data which could be validated to match a specific form. This coupled with the fact that this was a guitarist based forum and some genres of music were not equally represented, there was a lot of missing data. 
+  
+3. Spotify provided both the top 200 streamed songs by week as well as the song metadata including their metrics of subjective song attributes such as "energy" and "dancability"
+
+4. Grammy winners of most individual song categories were collected with functionality to specify how far back we wanted to collect data for
+
+5. Certifications of songs (gold, platinum, etc) were collected from the official source of these certifications, the Recording Industry Association of America at "riaa.com"
+
+6. The music data was collected from a forum based website called "ultimate-guitar.com" where chord progressions were posted. This data was strongly utilized in the study, but also suffered a few limitations. Because the site was a forum, the way that the data was kept was not always consistent, and the program would only take data which could be validated to match a specific form. This coupled with the fact that this was a guitarist based forum and some genres of music were not equally represented, there was a lot of missing data. 
 
 ## Quantifying a song
   With the data gathered, the next step was to be able to measure the subjective elements of popularity, complexity, and outside influence quantitatively. This presented challenges because there are many ways which a song could be considered complex or popular, and it is not really possible to be completely sure how organically a song was created by an artist. Despite these challenges, our best effort can get us pretty far, and as long as limitations are kept in mind along with the fact that the approach taken is just one way of thinking, then the conclusions are very worth attaining through these methods. Other approaches could yield different conclusions as subjectivity is hard to quantify, the limitations of this work could be amended in future studies to improve the validity of the conclusions pulled. 
