@@ -2,6 +2,30 @@
 title: "Final Frost 2019: Writeup "
 author: "Daniel DeFoe"
 output: html_document
+references:
+- id: charlie
+  title: Hit Song Authorship
+  author:
+  - family: Liou
+    given: Charlie
+  container-title: Frost Summer Research
+  type: article
+  issued:
+    year: 2018
+- id: billboard
+  title: Billboard Hot 100
+  url: https://www.billboard.com/charts/hot-100
+- id: songmachine
+  title: The Song Machine - Inside the Hit Factory
+  author:
+  - family: Seabrook
+    given: John
+  type: book
+  publisher: W.W. Norton & Company
+  issued:
+    year: 2015
+    month: October
+    day: 5 
 ---
 
 ```{r setup, include=FALSE}
@@ -40,7 +64,7 @@ songAttrsDf = read_csv("FrostData/songAttrsDataClean.csv", col_types = cols())
 
 
 ## Introduction
-  John Seabrook's "The Song Machine: Inside the Hit Factory" portrays the modern music industry as a machine which has been programmed to make money and breed songwriters and artists to make uniform choices in order to maintain some success algorithm. The book claims "[a] common problem hit factories suffer is that the balance of power between the artists and the writers and producers tends to change over time," suggesting that the relationships between artists and music business entities can alter over time, potentially being driven by different motives. So one might ask if in all of this volatility and evolution in the relationships that the music is affected? The industry norms that the book suggests can be considered and studied in the context of data by finding ways to measure the popularity, complexity, and outside influence on a song. Ultimately, this data can be used to try to answer the question “What is the effect over time of music industry influence on musical artists, in terms of musical content?”
+  John Seabrook's "The Song Machine: Inside the Hit Factory" [@songmachine] portrays the modern music industry as a machine which has been programmed to make money and breed songwriters and artists to make uniform choices in order to maintain some success algorithm. The book claims "[a] common problem hit factories suffer is that the balance of power between the artists and the writers and producers tends to change over time," suggesting that the relationships between artists and music business entities can alter over time, potentially being driven by different motives. So one might ask if in all of this volatility and evolution in the relationships that the music is affected? The industry norms that the book suggests can be considered and studied in the context of data by finding ways to measure the popularity, complexity, and outside influence on a song. Ultimately, this data can be used to try to answer the question “What is the effect over time of music industry influence on musical artists, in terms of musical content?”
   
   Subjective measures will be difficult to quantify reliably but there is evidence in pre-existing data which can help make some strong arguments. Essentially, just because a right answer cannot be verified, this does not mean that attempts can't help make valid conclusions. Scaling results to the entire music industry will be difficult and impractical, but a look into some case study artists will give some insights to how choices to make complex music can affect popularity, and potentially how outside influence can affect both complexity and popularity. Perhaps with these relationships explored, then the long term effect of music industry influence on music content can be better defined. 
   
@@ -329,7 +353,7 @@ Again, the correlation is portrayed as being negative, but not with significance
   - Do can we predict for newer artists what archetype they are most likely to be a part of?
   -What are the properties of certain archetypes in the short and long term in terms of popularity and autonomy?
 
-## References
+
 Help with the best way to do this would be nice
 * How to reference Charlie's work
 * https://www.billboard.com/charts/hot-100
@@ -339,3 +363,5 @@ Help with the best way to do this would be nice
 * Spotify API
 * https://www.grammy.com/grammys/awards/61st-annual-grammy-awards
 * https://www.riaa.com/gold-platinum/
+
+# References
