@@ -171,7 +171,12 @@ archArtist[archArtist$Name %like% "If i Never See your Face Again", "Album"] = "
 archArtistPop = getPopularityMetric(archArtist)
 #archArtistPop
 
-ggplot(archArtistPop, aes(x = ReleaseDate, y = pop1, label= Name)) + geom_label_repel(data = subset(archArtistPop, pop1 > 100), box.padding   = 0.35, point.padding = 0.5, segment.color = 'grey50') + theme_classic(base_size = 10) + geom_point(aes(color = Album)) + geom_smooth(,method = "lm") + labs(title = "Pop1 of Maroon 5 Songs By Release Date", y = "Pop1 Score", x = "Release Date")
+ggplot(archArtistPop, aes(x = ReleaseDate, y = pop1, label= Name)) +
+  geom_label_repel(data = subset(archArtistPop, pop1 > 100), box.padding   = 0.35, point.padding = 0.5, segment.color = 'grey50') + 
+  theme_classic(base_size = 10) + 
+  geom_point(aes(color = Album)) + 
+  geom_smooth(,method = "lm") + 
+  labs(title = "Pop1 of Maroon 5 Songs By Release Date", y = "Pop1 Score", x = "Release Date")
 
 ```
 
@@ -224,7 +229,7 @@ ggplot(combine_df, aes(x = ReleaseDate,
   labs(title = "Musical Complexity of Maroon 5 Songs By Release Date", 
        y = "Standardized Musical Complexity", 
        x = "Release Date") +
-  scale_size_continuous(name = "Number of Non-Band-Member Writers")
+  scale_size_continuous(name = "Non-Band-Member Writers")
 ```
 
 There is less music chord data to go off of, but what is there shows Maroon 5 as scoring lower musical complexity scores in their later released songs in comparison to their earlier released material. Again "Harder to Breathe" is considered the most complex musically. 
