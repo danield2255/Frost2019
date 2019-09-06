@@ -352,6 +352,13 @@ allArtistMetricsSub = allArtistMetrics[allArtistMetrics$musicalComplexity != 0 ,
 
 #corr.test(allArtistMetricsSub[c("totalComplexity", "pop1")])
 chart.Correlation(allArtistMetricsSub[c("totalComplexity", "pop1")])
+
+
+ggplot(allArtistMetricsSub, aes(x = totalComplexity, y = pop1)) + 
+  geom_point(aes(color = Artist)) +
+  stat_smooth(method = "lm")
+
+### calculate model here; report slope and significance.
 ```
   The correlation is not significant so while the data indicates a very slight negative correlation, there is not significant evidence to support that and artist's popularity is negatively correlated with their music's complexity. What about for data not standardized by artist? Could this yield different results?
 ```{r}
