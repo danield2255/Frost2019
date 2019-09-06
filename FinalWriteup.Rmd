@@ -72,7 +72,7 @@ This paper proceeds as follows:  First, we will establish how to collect evidenc
 
 ## Data Collection
   The first step was to collect data that was perceived as relevant at the time. Not all data was used, but the steps taken to attain it are documented below. 
-  1. The functions to get the Billboard Hot 100 ranking data as well as the song lyric data from "Genius.com" were already created by Charlie Lui. (this is his last name correct?) Only minor adjustments were made to these functions. 
+  1. The functions to get the Billboard Hot 100 ranking data as well as the song lyric data from "Genius.com" were already created by Charlie Liou.  Only minor adjustments were made to these functions. 
   2. From Spotify, first we collected data on artists, to see who qualified to be considered for the study. To qualify, an artist must have: 
     - appeared on the Billboard Hot 100 in the last 20 years
     - released at least 3 albums
@@ -88,15 +88,15 @@ This paper proceeds as follows:  First, we will establish how to collect evidenc
 
 
 ### Popularity
-  Quantifying popularity is subjective, but a metric will be used that accounts for the each week's position on the chart scaled by the number of weeks it has been on the charts. This rewards longevity on the charts, and heavily rewards higher positions. This will be 
-  $$pop1 = \sum(\frac{weeksOnBillboard}{currentBillboardRank})$$
-For each week the current spot is scaled by the number of weeks the song has been on the charts to that point, and have the scaled value at all weeks summed.
+  To quantify popularity, we created a metric that accounts for a song's weekly position on the Billboard Hot 100 chart, scaled by the number of weeks it has already been on the charts. This rewards longevity on the charts, and heavily rewards higher chart position. The metric is given by:
+  $$\text{\sc{POP}}_1 = \sum_{weeks} \left(\frac{\text{weeks on chart}{\text{current chart position}})\right$$
+For each week the current spot is scaled by the number of weeks the song has been on the charts to that point, and  the scaled value at all weeks is summed.
 ```{r}
 #plot of pop1 distribution
 ggplot(allArtistReg, aes(x = pop1))+ geom_histogram(binwidth = 5) +labs(title = "Distribution of Pop1 Scores")
 ```
 
-  Other metrics were considered and they while they were not chosen to be applied to the rest of the study, they are documented below. 
+  Other possible metrics for populatiy were considered, and they while they were not chosen to be applied to the rest of the study, they are documented below. 
   
   The second metric was just a variation of the first one that did not scale by the number of weeks the song had been on the charts to that point. It was expressed as  
   $$pop2 = \sum(\frac{1}{currentBillboardRank})$$
@@ -127,6 +127,8 @@ ggplot(popSep, aes(x= popMetric, y = Score)) + geom_boxplot()+ coord_cartesian(y
   
   As shown in the boxplots above, (excluding many great outlier values of pop1), there are rather low median values of pop1 and pop2, and greater median values of pop3 and pop4 and seemingly unbounded ranges on pop1 and pop2, whereas there are bounded ranges on pop3 and pop4. There is more support for pop1 in this because while popularity is not something to be bounded low, it should be considered upper range exclusive as only one song can hold each rank at any single time. 
   
+  
+  [Can you provide an example here of two songs with different trajectories with similar pop 1 scores, and rightfully so?  This would be a good way to argue that Pop 1 captures the "truth" better by combining longevity and peak.]
 
 ### Complexity
   A song's complexity was determined by both lyrical and musical complexity. The music data however, as previously mentioned, was not present for all songs. Both lyrical and musical complexity were standardized by artist and then added together. This equation is totalComplexity = std(lyricalComplexity) + std(musicalComplexity)
