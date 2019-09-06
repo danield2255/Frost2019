@@ -365,7 +365,9 @@ Again, the correlation is portrayed as being negative, but not with significance
 
 ## Future Work
   The knowledge gained from this project pushed the conversation forward in a number of directions and encourages the following questions:
-  -What tendencies do particular writers have lyrically or musically?
+
+- *What tendencies do particular writers have lyrically or musically?* One might consider quantifying the identifying tendencies of prolific professional songwriters, by comparing songs they contribute to with other works.
+  
   - Do particular labels try to change artists more than others?
   - Do music industry forces try to push artists towards certain genres? 
   - Is wordier(music with more lyrics) music more popular or less popular than more instrumental music?
