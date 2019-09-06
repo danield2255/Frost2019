@@ -137,8 +137,14 @@ ggplot(popSep, aes(x= popMetric, y = Score)) + geom_boxplot()+ coord_cartesian(y
   [Can you provide an example here of two songs with different trajectories with similar pop 1 scores, and rightfully so?  This would be a good way to argue that Pop 1 captures the "truth" better by combining longevity and peak.]
 
 ### Complexity
-  A song's complexity was determined by both lyrical and musical complexity. The music data however, as previously mentioned, was not present for all songs. Both lyrical and musical complexity were standardized by artist and then added together. This equation is totalComplexity = std(lyricalComplexity) + std(musicalComplexity)
-  The lyrical complexity of songs was based on average word length, average number of syllables, and the amount of repetition in the song. This equation can be expressed as
+  A song's complexity was determined by both lyrical and musical complexity.  Both lyrical and musical complexity were standardized by artist and then added together for a total score:
+  
+  $$\text{Total Complexity} = std(\text{Lyrical Complexity}) + std(\text{Musical Complexity})$$
+  The lyrical complexity of songs was measured using for variables:
+  
+- **Average Word Length:** The mean character length of all words in the song.  Songs that regularly used longer words may be considered more complex.
+- **Average Syllables:** [... etc.]
+
   $$lyricalComplexity = 1.5(avgWordLen) + avgSyllables + 2(UniqueToTotalRatio)+ wordsPerSec $$
   This means that we are considering the measure of repetition measured in the unique to total ratio as the most important factor in determining lyrical complexity, followed by the average word length, then by the average number of syllables and words per second. 
   
