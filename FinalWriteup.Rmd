@@ -2,6 +2,30 @@
 title: "Final Frost 2019: Writeup "
 author: "Daniel DeFoe"
 output: html_document
+references:
+- id: charlie
+  title: Hit Song Authorship
+  author:
+  - family: Liou
+    given: Charlie
+  container-title: Frost Summer Research
+  type: article
+  issued:
+    year: 2018
+- id: billboard
+  title: Billboard Hot 100
+  url: https://www.billboard.com/charts/hot-100
+- id: songmachine
+  title: The Song Machine - Inside the Hit Factory
+  author:
+  - family: Seabrook
+    given: John
+  type: book
+  publisher: W.W. Norton & Company
+  issued:
+    year: 2015
+    month: October
+    day: 5 
 ---
 
 ```{r setup, include=FALSE}
@@ -40,39 +64,45 @@ songAttrsDf = read_csv("FrostData/songAttrsDataClean.csv", col_types = cols())
 
 
 ## Introduction
-  John Seabrook's "The Song Machine: Inside the Hit Factory" portrays the modern music industry as a machine which has been programmed to make money and breed songwriters and artists to make uniform choices in order to maintain some success algorithm. The book claims "[a] common problem hit factories suffer is that the balance of power between the artists and the writers and producers tends to change over time," suggesting that the relationships between artists and music business entities can alter over time, potentially being driven by different motives. So one might ask if in all of this volatility and evolution in the relationships that the music is affected? The industry norms that the book suggests can be considered and studied in the context of data by finding ways to measure the popularity, complexity, and outside influence on a song. Ultimately, this data can be used to try to answer the question “What is the effect over time of music industry influence on musical artists, in terms of musical content?”
+  John Seabrook's "The Song Machine: Inside the Hit Factory" [@songmachine] portrays the modern music industry as a machine which has been programmed to make money and breed songwriters and artists for success. The book claims "[a] common problem hit factories suffer is that the balance of power between the artists and the writers and producers tends to change over time," suggesting that the formula followed by musicians may change over their career. In this study, we aim to quantify the ways in which industry influence affects the music itself.  We approach this problem by creating data-driven metrics to measure the popularity, complexity, and outside influence on a song. 
   
-  Subjective measures will be difficult to quantify reliably but there is evidence in pre-existing data which can help make some strong arguments. Essentially, just because a right answer cannot be verified, this does not mean that attempts can't help make valid conclusions. Scaling results to the entire music industry will be difficult and impractical, but a look into some case study artists will give some insights to how choices to make complex music can affect popularity, and potentially how outside influence can affect both complexity and popularity. Perhaps with these relationships explored, then the long term effect of music industry influence on music content can be better defined. 
+This paper proceeds as follows:  First, we will establish how to collect evidence from pre-existing data to make some strong arguments about seemingly subjective concepts. Next, we will explore a case study of the band Maroon 5, to provide initial insights into how musical choices can affect popularity, and  how outside influence interacts with this relationship.  Finally, we will expand our study to a larger set of prominent musical artists, to make broader statements about the evolution of music creation over a career trajectory.
   
 
 
 ## Data Collection
   The first step was to collect data that was perceived as relevant at the time. Not all data was used, but the steps taken to attain it are documented below. 
-  1. The functions to get the Billboard Hot 100 ranking data as well as the song lyric data from "Genius.com" were already created by Charlie Lui. (this is his last name correct?) Only minor adjustments were made to these functions. 
-  2. From Spotify, first we collected data on artists, to see who qualified to be considered for the study. To qualify, an artist must have: 
+  
+1. The functions to get the Billboard Hot 100 ranking data as well as the song lyric data from "Genius.com" were already created by Charlie Liou.  Only minor adjustments were made to these functions. 
+
+2. From Spotify, first we collected data on artists, to see who qualified to be considered for the study. To qualify, an artist must have: 
     - appeared on the Billboard Hot 100 in the last 20 years
     - released at least 3 albums
     - released their first album at least 7 years ago
   If an artist met these criteria, then there was evidence to argue that they had tenure in the music industry, and had been decently exposed to music industry forces. Here there was the limitation of not being able to always effectively count studio albums because Spotify brought all re-releases and live albums. For all of the following sources, only songs by artists who had met the above criteria were included. 
-  3. Spotify provided both the top 200 streamed songs by week as well as the song metadata including their metrics of subjective song attributes such as "energy" and "dancability"
-  4. Grammy winners of most individual song categories were collected with functionality to specify how far back we wanted to collect data for
-  5. Certifications of songs (gold, platinum, etc) were collected from the official source of these certifications, the Recording Industry Association of America at "riaa.com"
-  6. The music data was collected from a forum based website called "ultimate-guitar.com" where chord progressions were posted. This data was strongly utilized in the study, but also suffered a few limitations. Because the site was a forum, the way that the data was kept was not always consistent, and the program would only take data which could be validated to match a specific form. This coupled with the fact that this was a guitarist based forum and some genres of music were not equally represented, there was a lot of missing data. 
+  
+3. Spotify provided both the top 200 streamed songs by week as well as the song metadata including their metrics of subjective song attributes such as "energy" and "dancability"
+
+4. Grammy winners of most individual song categories were collected with functionality to specify how far back we wanted to collect data for
+
+5. Certifications of songs (gold, platinum, etc) were collected from the official source of these certifications, the Recording Industry Association of America at "riaa.com"
+
+6. The music data was collected from a forum based website called "ultimate-guitar.com" where chord progressions were posted. This data was strongly utilized in the study, but also suffered a few limitations. Because the site was a forum, the way that the data was kept was not always consistent, and the program would only take data which could be validated to match a specific form. This coupled with the fact that this was a guitarist based forum and some genres of music were not equally represented, there was a lot of missing data. 
 
 ## Quantifying a song
   With the data gathered, the next step was to be able to measure the subjective elements of popularity, complexity, and outside influence quantitatively. This presented challenges because there are many ways which a song could be considered complex or popular, and it is not really possible to be completely sure how organically a song was created by an artist. Despite these challenges, our best effort can get us pretty far, and as long as limitations are kept in mind along with the fact that the approach taken is just one way of thinking, then the conclusions are very worth attaining through these methods. Other approaches could yield different conclusions as subjectivity is hard to quantify, the limitations of this work could be amended in future studies to improve the validity of the conclusions pulled. 
 
 
 ### Popularity
-  Quantifying popularity is subjective, but a metric will be used that accounts for the each week's position on the chart scaled by the number of weeks it has been on the charts. This rewards longevity on the charts, and heavily rewards higher positions. This will be 
-  $$pop1 = \sum(\frac{weeksOnBillboard}{currentBillboardRank})$$
-For each week the current spot is scaled by the number of weeks the song has been on the charts to that point, and have the scaled value at all weeks summed.
+  To quantify popularity, we created a metric that accounts for a song's weekly position on the Billboard Hot 100 chart, scaled by the number of weeks it has already been on the charts. This rewards longevity on the charts, and heavily rewards higher chart position. The metric is given by:
+  $$\text{\sc{POP}}_1 = \sum_{weeks} \left(\frac{\text{weeks on chart}{\text{current chart position}})\right$$
+For each week the current spot is scaled by the number of weeks the song has been on the charts to that point, and  the scaled value at all weeks is summed.
 ```{r}
 #plot of pop1 distribution
 ggplot(allArtistReg, aes(x = pop1))+ geom_histogram(binwidth = 5) +labs(title = "Distribution of Pop1 Scores")
 ```
 
-  Other metrics were considered and they while they were not chosen to be applied to the rest of the study, they are documented below. 
+  Other possible metrics for populatiy were considered, and they while they were not chosen to be applied to the rest of the study, they are documented below. 
   
   The second metric was just a variation of the first one that did not scale by the number of weeks the song had been on the charts to that point. It was expressed as  
   $$pop2 = \sum(\frac{1}{currentBillboardRank})$$
@@ -103,10 +133,18 @@ ggplot(popSep, aes(x= popMetric, y = Score)) + geom_boxplot()+ coord_cartesian(y
   
   As shown in the boxplots above, (excluding many great outlier values of pop1), there are rather low median values of pop1 and pop2, and greater median values of pop3 and pop4 and seemingly unbounded ranges on pop1 and pop2, whereas there are bounded ranges on pop3 and pop4. There is more support for pop1 in this because while popularity is not something to be bounded low, it should be considered upper range exclusive as only one song can hold each rank at any single time. 
   
+  
+  [Can you provide an example here of two songs with different trajectories with similar pop 1 scores, and rightfully so?  This would be a good way to argue that Pop 1 captures the "truth" better by combining longevity and peak.]
 
 ### Complexity
-  A song's complexity was determined by both lyrical and musical complexity. The music data however, as previously mentioned, was not present for all songs. Both lyrical and musical complexity were standardized by artist and then added together. This equation is totalComplexity = std(lyricalComplexity) + std(musicalComplexity)
-  The lyrical complexity of songs was based on average word length, average number of syllables, and the amount of repetition in the song. This equation can be expressed as
+  A song's complexity was determined by both lyrical and musical complexity.  Both lyrical and musical complexity were standardized by artist and then added together for a total score:
+  
+  $$\text{Total Complexity} = std(\text{Lyrical Complexity}) + std(\text{Musical Complexity})$$
+  The lyrical complexity of songs was measured using for variables:
+  
+- **Average Word Length:** The mean character length of all words in the song.  Songs that regularly used longer words may be considered more complex.
+- **Average Syllables:** [... etc.]
+
   $$lyricalComplexity = 1.5(avgWordLen) + avgSyllables + 2(UniqueToTotalRatio)+ wordsPerSec $$
   This means that we are considering the measure of repetition measured in the unique to total ratio as the most important factor in determining lyrical complexity, followed by the average word length, then by the average number of syllables and words per second. 
   
@@ -139,7 +177,12 @@ archArtist[archArtist$Name %like% "If i Never See your Face Again", "Album"] = "
 archArtistPop = getPopularityMetric(archArtist)
 #archArtistPop
 
-ggplot(archArtistPop, aes(x = ReleaseDate, y = pop1, label= Name)) + geom_label_repel(data = subset(archArtistPop, pop1 > 100), box.padding   = 0.35, point.padding = 0.5, segment.color = 'grey50') + theme_classic(base_size = 10) + geom_point(aes(color = Album)) + geom_smooth(,method = "lm") + labs(title = "Pop1 of Maroon 5 Songs By Release Date", y = "Pop1 Score", x = "Release Date")
+ggplot(archArtistPop, aes(x = ReleaseDate, y = pop1, label= Name)) +
+  geom_label_repel(data = subset(archArtistPop, pop1 > 100), box.padding   = 0.35, point.padding = 0.5, segment.color = 'grey50') + 
+  theme_classic(base_size = 10) + 
+  geom_point(aes(color = Album)) + 
+  geom_smooth(,method = "lm") + 
+  labs(title = "Pop1 of Maroon 5 Songs By Release Date", y = "Pop1 Score", x = "Release Date")
 
 ```
 
@@ -192,7 +235,7 @@ ggplot(combine_df, aes(x = ReleaseDate,
   labs(title = "Musical Complexity of Maroon 5 Songs By Release Date", 
        y = "Standardized Musical Complexity", 
        x = "Release Date") +
-  scale_size_continuous(name = "Number of Non-Band-Member Writers")
+  scale_size_continuous(name = "Non-Band-Member Writers")
 ```
 
 There is less music chord data to go off of, but what is there shows Maroon 5 as scoring lower musical complexity scores in their later released songs in comparison to their earlier released material. Again "Harder to Breathe" is considered the most complex musically. 
@@ -309,6 +352,13 @@ allArtistMetricsSub = allArtistMetrics[allArtistMetrics$musicalComplexity != 0 ,
 
 #corr.test(allArtistMetricsSub[c("totalComplexity", "pop1")])
 chart.Correlation(allArtistMetricsSub[c("totalComplexity", "pop1")])
+
+
+ggplot(allArtistMetricsSub, aes(x = totalComplexity, y = pop1)) + 
+  geom_point(aes(color = Artist)) +
+  stat_smooth(method = "lm")
+
+### calculate model here; report slope and significance.
 ```
   The correlation is not significant so while the data indicates a very slight negative correlation, there is not significant evidence to support that and artist's popularity is negatively correlated with their music's complexity. What about for data not standardized by artist? Could this yield different results?
 ```{r}
@@ -322,14 +372,16 @@ Again, the correlation is portrayed as being negative, but not with significance
 
 ## Future Work
   The knowledge gained from this project pushed the conversation forward in a number of directions and encourages the following questions:
-  -What tendencies do particular writers have lyrically or musically?
+
+- *What tendencies do particular writers have lyrically or musically?* One might consider quantifying the identifying tendencies of prolific professional songwriters, by comparing songs they contribute to with other works.
+  
   - Do particular labels try to change artists more than others?
   - Do music industry forces try to push artists towards certain genres? 
   - Is wordier(music with more lyrics) music more popular or less popular than more instrumental music?
   - Do can we predict for newer artists what archetype they are most likely to be a part of?
   -What are the properties of certain archetypes in the short and long term in terms of popularity and autonomy?
 
-## References
+
 Help with the best way to do this would be nice
 * How to reference Charlie's work
 * https://www.billboard.com/charts/hot-100
@@ -339,3 +391,5 @@ Help with the best way to do this would be nice
 * Spotify API
 * https://www.grammy.com/grammys/awards/61st-annual-grammy-awards
 * https://www.riaa.com/gold-platinum/
+
+# References
