@@ -68,6 +68,7 @@ source("frostFunctions.R")
 
 ```{r}
 allArtistReg = read_csv("FrostData/allArtistReg.csv")
+unstandardizedMusicDf = read_csv("FrostData/unstandardizedMusicDf.csv")
 
 billboardDf = read_csv("FrostData/billboardDataClean.csv", col_types = cols())
 spotifyDf = read_csv("FrostData/spotifyDataClean.csv", col_types = cols())
@@ -91,21 +92,21 @@ This paper proceeds as follows:  First, we will establish how to collect evidenc
 ## Data Collection
   The first step was to collect data that was perceived as relevant at the time. Not all data was used, but the steps taken to attain it are documented below. 
   
-1. The functions to get the Billboard Hot 100 ranking data as well as the song lyric data from "Genius.com" were already created by Charlie Liou.  Only minor adjustments were made to these functions. 
+1. The functions to get the Billboard Hot 100 [@billboard] ranking data as well as the song lyric data from "Genius.com" were already created by Charlie Liou.  Only minor adjustments were made to these functions. 
 
-2. From Spotify, first we collected data on artists, to see who qualified to be considered for the study. To qualify, an artist must have: 
+2. From Spotify [@Spotify API], first we collected data on artists, to see who qualified to be considered for the study. To qualify, an artist must have: 
     - appeared on the Billboard Hot 100 in the last 20 years
     - released at least 3 albums
     - released their first album at least 7 years ago
   If an artist met these criteria, then there was evidence to argue that they had tenure in the music industry, and had been decently exposed to music industry forces. Here there was the limitation of not being able to always effectively count studio albums because Spotify brought all re-releases and live albums. For all of the following sources, only songs by artists who had met the above criteria were included. 
   
-3. Spotify provided both the top 200 streamed songs by week as well as the song metadata including their metrics of subjective song attributes such as "energy" and "dancability"
+3. Spotify [@spotify] provided both the top 200 streamed songs by week as well as the song metadata including their metrics of subjective song attributes such as "energy" and "dancability"
 
-4. Grammy winners of most individual song categories were collected with functionality to specify how far back we wanted to collect data for
+4. Grammy winners [@Grammy] of most individual song categories were collected with functionality to specify how far back we wanted to collect data for
 
-5. Certifications of songs (gold, platinum, etc) were collected from the official source of these certifications, the Recording Industry Association of America at "riaa.com"
+5. Certifications of songs (gold, platinum, etc) were collected from the official source of these certifications, the Recording Industry Association of America at "riaa.com"[@RIAA]
 
-6. The music data was collected from a forum based website called "ultimate-guitar.com" where chord progressions were posted. This data was strongly utilized in the study, but also suffered a few limitations. Because the site was a forum, the way that the data was kept was not always consistent, and the program would only take data which could be validated to match a specific form. This coupled with the fact that this was a guitarist based forum and some genres of music were not equally represented, there was a lot of missing data. 
+6. The music data was collected from a forum based website called "ultimate-guitar.com" [@ultimate guitar] where chord progressions were posted. This data was strongly utilized in the study, but also suffered a few limitations. Because the site was a forum, the way that the data was kept was not always consistent, and the program would only take data which could be validated to match a specific form. This coupled with the fact that this was a guitarist based forum and some genres of music were not equally represented, there was a lot of missing data. 
 
 ## Quantifying a song
   With the data gathered, the next step was to be able to measure the subjective elements of popularity, complexity, and outside influence quantitatively. This presented challenges because there are many ways which a song could be considered complex or popular, and it is not really possible to be completely sure how organically a song was created by an artist. Despite these challenges, our best effort can get us pretty far, and as long as limitations are kept in mind along with the fact that the approach taken is just one way of thinking, then the conclusions are very worth attaining through these methods. Other approaches could yield different conclusions as subjectivity is hard to quantify, the limitations of this work could be amended in future studies to improve the validity of the conclusions pulled. 
@@ -114,13 +115,13 @@ This paper proceeds as follows:  First, we will establish how to collect evidenc
 ### Popularity
   To quantify popularity, we created a metric that accounts for a song's weekly position on the Billboard Hot 100 chart, scaled by the number of weeks it has already been on the charts. This rewards longevity on the charts, and heavily rewards higher chart position. The metric is given by:
   $$ \text{\sc{POP}}_1 = \sum_{weeks} \left(\frac{\text{weeks on chart}{\text{current chart position}})\right$$
-For each week the current spot is scaled by the number of weeks the song has been on the charts to that point, and  the scaled value at all weeks is summed.
+  This equation is basically communicating that the popularity score will be the sum over all weeks a song was on the charts, of one over that song's position on the Hot 100 that week times the number of weeks the song had been on the charts. This essentially means that for each week the current spot is scaled by the number of weeks the song has been on the charts to that point, and  the scaled value at all weeks is summed. 
 
   Other possible metrics for populatiy were considered, and they while they were not chosen to be applied to the rest of the study, they are documented below. 
   
   The second metric was just a variation of the first one that did not scale by the number of weeks the song had been on the charts to that point. It was expressed as  
   $$pop2 = \sum(\frac{1}{currentBillboardRank})$$
-  This was not chosen because we believed that week tenure did matter more than considering each week equally.
+  This equation sums one over the current weekly rank for all weeks a song was on the charts. This was not chosen because we believed that week tenure did matter more than considering each week equally.
 
   The third metric used only the peak position on the chart but took measures to not consider the number 2 spot on the chart as half the worth of the 1st spot, and measure each position at an equal distance from the next position. This metric did not consider longevity at all. This was 
   $$pop3 = ln(101.1-min(peakPosition))$$
@@ -172,7 +173,7 @@ ggplot(allArtistReg, aes(x = lyricalComplexity))+ geom_histogram(binwidth = 0.1)
   $$musicalComplexity =  2(nonDiatonicChords) + extendedChords + 2(numUniqueChords) + endDif$$
   This means that we are considering the count of non-diatonic chords and the number of unique chords as twice as important as the number of extended chords or different ends to sections. This is because non-diatonic chords show up more rarely in most music and also the total number of unique chords a song is composed of defines its musical depth. 
 ```{r}
-ggplot(allArtistReg, aes(x = musicalComplexity))+ geom_histogram(binwidth = 1) +labs(title = "Distribution of Musical Complexity Scores")
+ggplot(unstandardizedMusicDf, aes(x = musicalComplexity))+ geom_histogram(binwidth = 5) +labs(title = "Distribution of Musical Complexity Scores")
 ```
 
 
@@ -316,14 +317,15 @@ fullCompleteMetric$Label[fullCompleteMetric$Label == "Interscope"] = "222 Record
 ```
 
 ```{r}
-popGraph = ggplot(fullCompleteMetric, aes(y = pop1, x = Label)) + geom_violin() + labs(x = "Label", y = "Standardized Popularity") + geom_jitter() + coord_flip()
+ggplot(fullCompleteMetric, aes(y = pop1, x = Label)) + geom_violin(aes(fill = Label), trim = FALSE) + labs(title = "Maroon 5's Song Popularity by Album",x = "Label", y = "Standardized Popularity") + geom_jitter() + coord_flip()
 
-infGraph = ggplot(fullCompleteMetric, aes(y = nonBandMemberWriters, x = Label)) + geom_violin() + labs(x = "Label", y = "Number of Non-Bandmember Writers") + geom_jitter()+ coord_flip()
+ggplot(fullCompleteMetric, aes(y = nonBandMemberWriters, x = Label)) + geom_violin(aes(fill = Label), trim = FALSE) + labs(title = "Maroon 5's Outside Influence by Album",x = "Label", y = "Number of Non-Bandmember Writers") + geom_jitter()+ coord_flip()
 
-compGraph = ggplot(fullCompleteMetric, aes(y = totalComplexity, x = Label)) + geom_violin() + labs(x = "Label", y = "Standardized Total Complexity") + geom_jitter()+ coord_flip()
+ggplot(fullCompleteMetric, aes(y = totalComplexity, x = Label)) + geom_violin(aes(fill = Label), trim = FALSE) + labs(title = "Maroon 5's Song Complexity by Album", x = "Label", y = "Standardized Total Complexity") + geom_jitter()+ coord_flip()
 
-grid.arrange(compGraph, popGraph, infGraph, ncol = 2, nrow = 2, top = "Maroon 5's Song Popularity, Complexity, and Outside Influence by Album")
-```
+#grid.arrange(compGraph, popGraph, infGraph, ncol = 2, nrow = 2, top = "Maroon 5's Song Popularity, Complexity, and Outside Influence by Album")
+``` 
+
 
   Maroon 5's first label was "A&m/Octone", and their second label was the much larger "222 Records/Interscope"(the label after the slash is the parent label). The violin plots above show that greater song complexity was more likely for a song released under Octone than Interscope. Also, greater song popularity was more likely for a song released under Interscope than Octone. Lastly, a song was almost certainly likely to have outside cowriters on it if it was released under Interscope, while it was almost certain that a song would be made completely without outside influence if it was released under Octone. 
 
@@ -352,13 +354,17 @@ When looking at the data by album, it seems that the charting songs from their f
 What story does this information tell, and what can it teach about modern music culture? For Maroon 5, maybe they became accustomed to working with outside writers, so once they started, it became part of their process. Also as they were better and better known or more popular among industry entities it is possible writers sought more and more to work with the band. As far as music culture, it looks like these extra songwriters knew pretty well how to increase the band's popularity to places it had not been. It is also a possibility that the way this popularity is achieved is to be less complex, or also somewhat possible that the tendencies of these writers also pushed towards being less complex. Time often instigates change, but for Maroon 5 changes on the planes of influence, popularity, and complexity reshaped their sound and image from when they began. With the band at arguably the most commercially popular place its been, it will be interesting to see where it goes from here.
 
 ## Artist Archetypes
-  We investigated Maroon 5 and a selection of other artists who qualified for the study as mini case study artists, and each of their popularities, complexities, and outside influence levels over time were compared and contrasted to one another. If artists had similar changes in these metrics, they could potentially be grouped, and it could then be interesting to see if these groups could be clearly separated from one another to form archetypes of some sort. The following had similar patterns in terms of the relationship between popularity and complexity and time. 
+  We investigated Maroon 5 and a selection of other artists who qualified for the study as mini case study artists, and each of their popularities, complexities, and outside influence levels over time were compared and contrasted to one another. If artists had similar changes in these metrics, they could potentially be grouped, and it could then be interesting to see if these groups could be clearly separated from one another to form archetypes of some sort. 
+  Differences in popularity and complexity therefore can help us discern between types of artists. One difference we see is that over time Maroon 5, Taylor Swift, Justin Bieber, and Britney Spears each gain popularity while Justin Timberlake, Twenty One Pilots, Foo Fighters, and J Cole each lose popularity over time. Another difference between artists is that Foo Fighters, Britney Spears, and J Cole each gain complexity in their charting songs over time while Maroon 5, Twenty One Pilots, and Taylor Swift all lose complexity in their charting songs over time and Justin Timberlake and Justin Bieber both do not see their songs change much in complexity over time. 
+  The following had similar patterns in terms of the relationship between popularity and complexity and time. 
 
-* Maroon 5, Taylor Swift 
-* J Cole, Foo Fighters
-* All other artists, (Justin Timberlake, Twenty One Pilots, Justin Bieber, Britney Spears)
+
+* Maroon 5, Taylor Swift: Increase in popularity, decrease in complexity
+* J Cole, Foo Fighters: Decrease in popularity, increase in complexity
+* All other artists, (Justin Timberlake, Twenty One Pilots, Justin Bieber, Britney Spears): Not the same consistency of popularity and complexity over time as another artist
 &nbsp;
-Is there a significant difference between two main groups seen? Let us now look at standardized popularity and complexity over time for both groups on the same plot and test for significance for each of these metrics over time for both groups.
+  
+  We will really be considering the two first bullet point groups (Maroon 5, Taylor Swift & J Cole, Foo Fighters) since they had definitive and similar trajectory paths in popularity and complexity. Now we will see if there is a significant difference between two main groups seen? Let us now look at standardized popularity and complexity over time for both groups on the same plot and test for significance for each of these metrics over time for both groups.
 ```{r}
 allArtistMetrics = read_csv("FrostData/allArtistMetrics.csv")
 
@@ -383,6 +389,8 @@ ggplot(groupedArtists, aes(x= ReleaseDate, y = totalComplexity, color= Group, sh
 ```
   In tests for significance of pop1 score and song release date for both groups, neither test has a p-value less than 0.05, but both are very close with regression slope estimates in opposite directions from each other. The p-value for Maroon 5 and Taylor Swift having a positive association between popularity and time is 0.0669, while the p-value for J Cole and the Foo Fighters having a negative association between popularity and time is 0.0861. Together, this serves as reasonable evidence that the groups have different associations between popularity and time to one another. 
   For complexity, a similar result is received. Here, for Maroon 5 and Taylor Swift, a p-value of 0.00299 there is significant evidence that for these artists there is a negative association between complexity and time. Meanwhile, with a p-value of 0.0882, there may be weak evidence, but some indication that there exists a positive association between complexity and time the Foo Fighters and J Cole's music. 
+  
+  We may ask why groups might behave differently from one another, and if any reasons may have to do with industry forces. As noted in the case study section, Maroon 5 changed labels and then recieved a great number of outside co-writers on their content under the new label, and while Taylor Swift always had outside co-writers, we see increased outside co-writers on her charting songs as time goes on. So the first group has an increasing number of outside co-writers on their songs over time, but what about the second group? Well the Foo Fighters never used any outside co-writers, so their content was created internally, and J Cole does not seem to have a consistent pattern of outside co-writers, but as time goes on he more frequently has songs with fewer outside co-writers. Due to these pieces of information, perhaps aside from less quantifiable factors such as genre or period of popularity, the outside influence on charting songs increases over time for Maroon 5 and Taylor Swift while songs are made with less outside input over time in J Cole and the Foo Fighters' music.
   
   With some evidence that these two groups of artists can be separated from one another, we can give each a loose identity. Maroon 5 and Taylor Swift could in some senses be considered "the sellouts" as they allowed for a significant loss in complexity of their songs and ultimately gained popularity. Furthermore, they each started as somewhat niche artists and both ended up regressing to the pop genre. The Foo Fighters and J Cole could be considered "the rebels" as they both continued to create increasingly complex music despite a loss in popularity. 
   

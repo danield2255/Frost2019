@@ -352,6 +352,31 @@ artistCompare(list(britneySpearsReg, justinBieberReg))
 artistCompare(list(twentyOnePilotsReg, justinTimberlakeReg))
 
 ```
+
+## Gather All of the Real Musical Complexities
+```{r}
+maroon5Df = artistDataJoiner("Maroon 5") %>% getMusicComplexity(.,FALSE) %>% filter(Album %in%c("Red Pill Blues + (Deluxe)", "v (Deluxe)", "Overexposed Track by Track", "Hands all over (Deluxe)", "it Won't be Soon Before Long.", "Songs About Jane")) %>% distinct()
+
+justinTimberlakeDf = artistDataJoiner("Justin Timberlake") %>% getMusicComplexity(., FALSE) %>% filter(Album %in% c("Justified", "Man of the Woods", "The 20/20 Experience - 2 of 2 (Deluxe)", "The 20/20 Experience (Deluxe Version)", "Futuresex/Lovesounds Deluxe Edition")) %>% distinct()
+
+twentyOnePilotsDf = artistDataJoiner("Twenty One Pilots") %>% getMusicComplexity(., FALSE) %>% filter(Album %in% c("Trench", "Blurryface","Vessel (with Bonus Tracks)", "Twenty One Pilots")) %>% distinct()
+
+taylorSwiftDf = artistDataJoiner("Taylor Swift") %>% getMusicComplexity(.,FALSE)%>% filter(Album %in% c("Reputation", "1989 (Deluxe Edition)", "Red (Deluxe Edition)", "Speak Now (Deluxe Edition)", "Fearless (Platinum Edition)", "Taylor Swift")) %>% distinct()
+
+fooFightersDf = artistDataJoiner("Foo Fighters") %>% getMusicComplexity(.,FALSE)%>% filter(Album %in% c("Wasting Light", "Echoes, Silence, Patience & Grace", "In your Honor", "One by One (Expanded Edition)", "There is Nothing Left to Lose", "The Colour and the Shape", "Concrete and Gold", "Foo Fighters", "Sonic Highways")) %>% distinct()
+
+justinBieberDf = artistDataJoiner("Justin Bieber") %>% getMusicComplexity(.,FALSE)%>% filter(Album %in% c("Purpose (Deluxe)", "Journals", "Believe (Deluxe Edition)", "under the Mistletoe (Deluxe Edition)", "My World 2.0", "Never Say Never - The Remixes", "My World")) %>% distinct()
+
+britneySpearsDf = artistDataJoiner("Britney Spears") %>% getMusicComplexity(.,FALSE)%>% filter(Album %in% c("Britney Jean (Deluxe Version)", "Femme Fatale (Deluxe Version)", "Circus (Deluxe Version)", "Blackout", "In the Zone", "Britney (Digital Deluxe Version)", "Oops!... i Did it Again", "...baby One more Time (Digital Deluxe Version)", "Glory (Deluxe Version)")) %>% distinct()
+
+jColeDf = artistDataJoiner("j Cole")%>% getMusicComplexity(.,FALSE)%>% filter(Album %in% c("Revenge of the Dreamers Iii", "Kod", "2014 Forest Hills Drive", "Cole World: The Sideline Story", "4 your Eyez Only", "Born Sinner", "The Blow Up")) %>% distinct()
+
+unstandardizedMusicDf = rbind(maroon5Df, taylorSwiftDf,justinTimberlakeDf, twentyOnePilotsDf, justinBieberDf, fooFightersDf, jColeDf, britneySpearsDf)
+
+write.csv(unstandardizedMusicDf, "FrostData/unstandardizedMusicDf.csv")
+
+```
+
 Artist Groups
 The following had similar patterns in terms of relationship between popularity and complexity and time. 
 
