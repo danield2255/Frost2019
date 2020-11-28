@@ -67,15 +67,14 @@ source("frostFunctions.R")
 ```
 
 ```{r}
-allArtistReg = read_csv("FrostData/allArtistReg.csv")
-unstandardizedMusicDf = read_csv("FrostData/unstandardizedMusicDf.csv")
-
-billboardDf = read_csv("FrostData/billboardDataClean.csv", col_types = cols())
-spotifyDf = read_csv("FrostData/spotifyDataClean.csv", col_types = cols())
-riaaDf = read_csv("FrostData/riaaDataClean.csv", col_types = cols())
-grammyDf = read_csv("FrostData/grammyDataClean.csv", col_types = cols())
-songSecsDf = read_csv("FrostData/songSectionDataClean.csv", col_types = cols())
-songAttrsDf = read_csv("FrostData/songAttrsDataClean.csv", col_types = cols())
+allArtistReg = read_csv("Data/allArtistReg.csv")
+unstandardizedMusicDf = read_csv("Data/unstandardizedMusicDf.csv")
+billboardDf = read_csv("Data/billboardDataClean.csv", col_types = cols())
+spotifyDf = read_csv("Data/spotifyDataClean.csv", col_types = cols())
+riaaDf = read_csv("Data/riaaDataClean.csv", col_types = cols())
+grammyDf = read_csv("Data/grammyDataClean.csv", col_types = cols())
+songSecsDf = read_csv("Data/songSectionDataClean.csv", col_types = cols())
+songAttrsDf = read_csv("Data/songAttrsDataClean.csv", col_types = cols())
 ```
 
 ## Abstract
@@ -132,9 +131,15 @@ $$pop4 = mean(ln(101.1-currentBillboardRank))$$
   This metric took the average of all of the log scaled ranks across weeks. This was not chosen because while it considers more than the third metric, it also has an upper bound, and popularity does not necessarily need to be positively bounded.
 
   We ultimately chose the pop1 because it considers longevity and life path on the charts. This metric also uses a scale which makes greater rankings increasing valuable at a disproportional rate towards the top. It is actually appropriate to use this scale because only one spot can occupy each spot, so to for example, achieve the top spot should be more valuable than the second spot by a greater margin than achieving the second spot in comparison to the third. 
+
 ```{r}
-popSep = allArtistReg %>% gather(key = "popMetric", value = "Score", pop1:pop4)
-ggplot(popSep, aes(x= popMetric, y = Score)) + geom_boxplot()+ coord_cartesian(ylim = c(0, 20)) + labs(title = "Distributions of each Popularity Metric")
+popSep = allArtistReg %>% 
+  gather(key = "popMetric", value = "Score", pop1:pop4)
+
+ggplot(popSep, aes(x= popMetric, y = Score)) + 
+  geom_boxplot()+ 
+  coord_cartesian(ylim = c(0, 20)) + 
+  labs(title = "Distributions of each Popularity Metric")
 ```
   
   As shown in the boxplots above, (excluding many great outlier values of pop1), there are rather low median values of pop1 and pop2, and greater median values of pop3 and pop4 and seemingly unbounded ranges on pop1 and pop2, whereas there are bounded ranges on pop3 and pop4. There is more support for pop1 in this because while popularity is not something to be bounded low, it should be considered upper range exclusive as only one song can hold each rank at any single time. 
@@ -157,7 +162,9 @@ ggplot(popSep, aes(x= popMetric, y = Score)) + geom_boxplot()+ coord_cartesian(y
   This means that we are considering the measure of repetition measured in the unique to total ratio as the most important factor in determining lyrical complexity, followed by the average word length, then by the average number of syllables and words per second. 
   
 ```{r}
-ggplot(allArtistReg, aes(x = lyricalComplexity))+ geom_histogram(binwidth = 0.1) +labs(title = "Distribution of Lyrical Complexity Scores")
+ggplot(allArtistReg, aes(x = lyricalComplexity))+ 
+  geom_histogram(binwidth = 0.1) +
+  labs(title = "Distribution of Lyrical Complexity Scores")
 ```
   
   From the histogram, it appears that the lyrical complexities are mostly normally distributed. Other than a few outliers, this seems to be true, with the mean being around 11.75. 
@@ -172,15 +179,19 @@ ggplot(allArtistReg, aes(x = lyricalComplexity))+ geom_histogram(binwidth = 0.1)
   The musical complexity of songs was based on the number of unique chords in the song, number unexpected chords in basic popular music, and number of sections in the song which end differently than they progress. This equation can be expressed as 
   $$musicalComplexity =  2(nonDiatonicChords) + extendedChords + 2(numUniqueChords) + endDif$$
   This means that we are considering the count of non-diatonic chords and the number of unique chords as twice as important as the number of extended chords or different ends to sections. This is because non-diatonic chords show up more rarely in most music and also the total number of unique chords a song is composed of defines its musical depth. 
+
 ```{r}
-ggplot(unstandardizedMusicDf, aes(x = musicalComplexity))+ geom_histogram(binwidth = 5) +labs(title = "Distribution of Musical Complexity Scores")
+ggplot(unstandardizedMusicDf, aes(x = musicalComplexity))+ 
+  geom_histogram(binwidth = 5) +
+  labs(title = "Distribution of Musical Complexity Scores")
 ```
 
 
-  There is a very non-uniform distribution of the musical complexity scores, with large peaks sometimes spaced reasonably far from one another. This is because there was so much missing data that we often filled the songs with no music data with the mean of their songs with data. If none of an artists had music data, then their songs would recieve a 1 for musical complexity and this is why there are sporadic peaks, and a peak at 1. 
+There is a very non-uniform distribution of the musical complexity scores, with large peaks sometimes spaced reasonably far from one another. This is because there was so much missing data that we often filled the songs with no music data with the mean of their songs with data. If none of an artists had music data, then their songs would recieve a 1 for musical complexity and this is why there are sporadic peaks, and a peak at 1. 
 
 ## Case Study: Maroon 5
 The band Maroon 5 will be singled out and analyzed in the study to learn about their changes over time which could hopefully explain their journey from a previously hard-to-define, versatile group to a pop superpower. 
+
 ```{r}
 archArtist = artistDataJoiner("Maroon 5")
 validAlbums = c("Red Pill Blues + (Deluxe)", "v (Deluxe)", "Overexposed Track by Track", "Hands all over (Deluxe)", "it Won't be Soon Before Long.", "Songs About Jane")
@@ -188,13 +199,11 @@ validAlbums = c("Red Pill Blues + (Deluxe)", "v (Deluxe)", "Overexposed Track by
 archArtist = filter(archArtist, Album %in% validAlbums)
 #Need to adjust an incorrect data point
 archArtist[archArtist$Name %like% "If i Never See your Face Again", "Album"] = "it Won't be Soon Before Long."
-#archArtist
 ```
 
 ### Popularity Measure
 ```{r, warning=FALSE}
 archArtistPop = getPopularityMetric(archArtist)
-#archArtistPop
 
 ggplot(archArtistPop, aes(x = ReleaseDate, y = pop1, label= Name)) +
   geom_label_repel(data = subset(archArtistPop, pop1 > 100), box.padding   = 0.35, point.padding = 0.5, segment.color = 'grey50') + 
@@ -212,10 +221,10 @@ By the popularity metric made, there is an indication of a slight increase in th
 maroon5Members= c("Adam Levine", "Jesse Carmichael", "Mickey Madden", "James Valentine", "Matt Flynn", "PJ Morton", "Sam Farrar", "Ryan Dusick")
 
 archArtistInfluence = getOutsideInfluenceScore(archArtist, maroon5Members)
-#archArtistInfluence
 
-
-ggplot(archArtistInfluence, aes(x = ReleaseDate, y = nonBandMemberWriters, color = Album, label = Name)) + geom_point() + labs(title = "Number of non-Band Member Writers on Maroon 5's Songs Over Time", y = "Number of Non-Bandmember Writers", x = "Release Date")
+ggplot(archArtistInfluence, aes(x = ReleaseDate, y = nonBandMemberWriters, color = Album, label = Name)) + 
+  geom_point() + 
+  labs(title = "Number of non-Band Member Writers on Maroon 5's Songs Over Time", y = "Number of Non-Bandmember Writers", x = "Release Date")
 ```
 
 It is apparent that all of Maroon 5's Billboard Hot 100 charting songs were written completely and solely by members of Maroon 5 until just before 2015. After this point, all the charting songs have multiple writing credits given to writers not in Maroon 5. This suggests increased outside influence in the band's more recent music. 
@@ -223,11 +232,19 @@ It is apparent that all of Maroon 5's Billboard Hot 100 charting songs were writ
 ### Measure of Lyrical Complexity
 ```{r}
 lyricalComplexDf = getLyricalComplexity(archArtist, TRUE)
-#lyricalComplexDf
 
 lyricalComplexDf = lyricalComplexDf[-21,]
 
-ggplot(lyricalComplexDf, aes(x = ReleaseDate, y = lyricalComplexity, label = Name)) + geom_point(aes(color = Album)) + geom_label_repel(data = subset(lyricalComplexDf, lyricalComplexity > 2 | lyricalComplexity < -4), box.padding   = 0.35, point.padding = 0.5, segment.color = 'grey50', nudge_y = ifelse(subset(lyricalComplexDf, lyricalComplexity > 2 | lyricalComplexity < -4)$lyricalComplexity > 2, 5, -1)) + theme_classic(base_size = 10) + geom_smooth(method = "lm") + labs(title = "Lyrical Complexity of Maroon 5 Songs by Release Date", y = "Standardized Lyrical Complexity", x = "Release Date")
+ggplot(lyricalComplexDf, aes(x = ReleaseDate, y = lyricalComplexity, label = Name)) + 
+  geom_point(aes(color = Album)) + 
+  geom_label_repel(data = subset(lyricalComplexDf, 
+                   lyricalComplexity > 2 | lyricalComplexity < -4),
+                   box.padding   = 0.35, 
+                   point.padding = 0.5, 
+                   segment.color = 'grey50', 
+                   nudge_y = ifelse(subset(lyricalComplexDf, lyricalComplexity > 2 | lyricalComplexity < -4)$lyricalComplexity > 2, 5, -1)) + 
+  theme_classic(base_size = 10) + geom_smooth(method = "lm") + 
+  labs(title = "Lyrical Complexity of Maroon 5 Songs by Release Date", y = "Standardized Lyrical Complexity", x = "Release Date")
 ```
 
 When the lyrical complexity of Maroon 5's Billboard charting songs are plotted against time, it is apparent that there is a negative association between lyrical complexity and time for Maroon 5 charting songs. By far the least lyrically complex song was one of the more recent, "What Lovers Do" in 2017 and the most lyrically complex was "Harder to Breathe" from 2002. 
@@ -235,8 +252,8 @@ When the lyrical complexity of Maroon 5's Billboard charting songs are plotted a
 ### Measure of Musical Complexity
 ```{r}
 musicComplexDf = getMusicComplexity(archArtist, TRUE)
-#musicComplexDf
-combine_df <- full_join(musicComplexDf, archArtistInfluence) %>%
+
+combine_df = full_join(musicComplexDf, archArtistInfluence) %>%
   drop_na()
 
 ggplot(combine_df, aes(x = ReleaseDate, 
@@ -262,7 +279,6 @@ There is less music chord data to go off of, but what is there shows Maroon 5 as
 
 ```{r}
 artistMetricDf = fullMetricsDataSet(archArtistPop, archArtistInfluence, lyricalComplexDf, musicComplexDf, TRUE)
-#artistMetricDf
 
 #artistMetricDf %>%
 #  select(Name, pop1, pop2, pop3, pop4) %>%
@@ -291,12 +307,14 @@ artistDf = artistDataJoiner(artist) %>%
   artistMetricDf = fullMetricsDataSet(archArtistPop, archArtistInfluence, lyricalComplexDf, musicComplexDf, TRUE)
   relDateDf = artistDf %>% select(Name, ReleaseDate)
   fullMetric = merge(relDateDf, artistMetricDf, by =c("Name", "ReleaseDate"))
+  
   #Fill musical complexity NAs with 0 because it is standardized
   fullMetric$musicalComplexity[is.na(fullMetric$musicalComplexity)] = 0
   fullMetric$totalComplexity = fullMetric$lyricalComplexity + fullMetric$musicalComplexity
   fullMetric = fullMetric %>% 
     filter(complete.cases(.[,!names(.) %in% c("nonBandMemberWriters")])) %>%
     distinct()
+  
 #  complexGraph = qplot(ReleaseDate, totalComplexity, group = ReleaseDate > "2014-01-01", geom = c("point", "smooth"), method = "lm", se = FALSE, data = fullMetric)+ labs(y = "Standardized Song Complexity", x = "Release Date") + geom_vline(xintercept = as.Date("2014-01-01"))
 
 #  popGraph = qplot(ReleaseDate, pop1, group = ReleaseDate > "2014-01-01", geom = c("point", "smooth"), method = "lm", se = FALSE, data = fullMetric) +labs(y = "Standardized Pop Score", x = "Release Date")+ geom_vline(xintercept = as.Date("2014-01-01"))
@@ -308,20 +326,33 @@ artistDf = artistDataJoiner(artist) %>%
 ```
 
 ```{r}
-temp = artistDf %>% select(Name, Label) %>% distinct()
+temp = artistDf %>% 
+  select(Name, Label) %>% 
+  distinct()
 
 fullCompleteMetric = join(temp, fullMetric, by = "Name")
 fullCompleteMetric = fullCompleteMetric[!is.na(fullCompleteMetric$Label), ]
 fullCompleteMetric$Label[fullCompleteMetric$Label == "Interscope"] = "222 Records / Interscope"
-
 ```
 
 ```{r}
-ggplot(fullCompleteMetric, aes(y = pop1, x = Label)) + geom_violin(aes(fill = Label), trim = FALSE) + labs(title = "Maroon 5's Song Popularity by Album",x = "Label", y = "Standardized Popularity") + geom_jitter() + coord_flip()
+ggplot(fullCompleteMetric, aes(y = pop1, x = Label)) +
+  geom_violin(aes(fill = Label), trim = FALSE) + 
+  labs(title = "Maroon 5's Song Popularity by Album",x = "Label", y = "Standardized Popularity") + 
+  geom_jitter() + 
+  coord_flip()
 
-ggplot(fullCompleteMetric, aes(y = nonBandMemberWriters, x = Label)) + geom_violin(aes(fill = Label), trim = FALSE) + labs(title = "Maroon 5's Outside Influence by Album",x = "Label", y = "Number of Non-Bandmember Writers") + geom_jitter()+ coord_flip()
+ggplot(fullCompleteMetric, aes(y = nonBandMemberWriters, x = Label)) + 
+  geom_violin(aes(fill = Label), trim = FALSE) + 
+  labs(title = "Maroon 5's Outside Influence by Album",x = "Label", y = "Number of Non-Bandmember Writers") + 
+  geom_jitter()+ 
+  coord_flip()
 
-ggplot(fullCompleteMetric, aes(y = totalComplexity, x = Label)) + geom_violin(aes(fill = Label), trim = FALSE) + labs(title = "Maroon 5's Song Complexity by Album", x = "Label", y = "Standardized Total Complexity") + geom_jitter()+ coord_flip()
+ggplot(fullCompleteMetric, aes(y = totalComplexity, x = Label)) + 
+  geom_violin(aes(fill = Label), trim = FALSE) + 
+  labs(title = "Maroon 5's Song Complexity by Album", x = "Label", y = "Standardized Total Complexity") + 
+  geom_jitter()+ 
+  coord_flip()
 
 #grid.arrange(compGraph, popGraph, infGraph, ncol = 2, nrow = 2, top = "Maroon 5's Song Popularity, Complexity, and Outside Influence by Album")
 ``` 
@@ -330,8 +361,12 @@ ggplot(fullCompleteMetric, aes(y = totalComplexity, x = Label)) + geom_violin(ae
   Maroon 5's first label was "A&m/Octone", and their second label was the much larger "222 Records/Interscope"(the label after the slash is the parent label). The violin plots above show that greater song complexity was more likely for a song released under Octone than Interscope. Also, greater song popularity was more likely for a song released under Interscope than Octone. Lastly, a song was almost certainly likely to have outside cowriters on it if it was released under Interscope, while it was almost certain that a song would be made completely without outside influence if it was released under Octone. 
 
 ```{r}
-ggplot(fullCompleteMetric, aes(x= totalComplexity, y =nonBandMemberWriters )) + geom_point(aes(color = Label, size = pop1)) + labs(title= "Number of Non-Band Member Writers, Total Complexity, and Popularity by Record Label", x = "Standardized Total Complexity", y = "Number of Non-Bandmember Writers", size = "Standardized Popularity")
-
+ggplot(fullCompleteMetric, aes(x= totalComplexity, y =nonBandMemberWriters )) + 
+  geom_point(aes(color = Label, size = pop1)) + 
+  labs(title= "Number of Non-Band Member Writers, Total Complexity, and Popularity by Record Label", 
+       x = "Standardized Total Complexity", 
+       y = "Number of Non-Bandmember Writers", 
+       size = "Standardized Popularity")
 ```
 
   The scatterplot above shows that Octone songs had greater potential for greater complexity than Interscope. Only two charting tracks on Interscope were made with no outside influence, and the songs with the most popularity both had 5 outside cowriters. Both of these songs were right around average complexity for the band. 
@@ -345,8 +380,13 @@ avgWritersByAlb = fullMetric %>%
   ddply(.,~Album, summarize, avgnumNonBandWriters = mean(nonBandMemberWriters, na.rm = TRUE), avgComplex = mean(totalComplexity, na.rm = TRUE), avgPop = mean(pop1, na.rm = TRUE))
 
 albums = c("Songs About Jane", "it Won't be Soon Before Long.", "Hands all over (Deluxe)", "Overexposed Track by Track", "v (Deluxe)", "Red Pill Blues + (Deluxe)")
-ggplot(avgWritersByAlb, aes(x = Album,y= avgPop, fill = avgComplex)) + geom_bar(stat = "identity")+ geom_text(size = 3, aes(label = paste("Avg ",avgnumNonBandWriters, " writers"),vjust=ifelse(avgPop > 0,-0.5,1))) +
-labs(title = "Average Popularity, Complexity, and Non-band Member Writers for each Maroon 5 Album", x = "Album", y = "Average Popularity", fill = "Average Complexity") + scale_x_discrete(limits = albums, labels = c("Songs About Jane", "It Won't be Soon Before Long", "Hands All Over", "Overexposed", "V", "Red Pill Blues")) + theme(axis.text.x = element_text(face="bold", angle=90), axis.text = element_text(size = 6))# + scale_fill_gradient(low="gray", high="red")
+
+ggplot(avgWritersByAlb, aes(x = Album,y= avgPop, fill = avgComplex)) + 
+  geom_bar(stat = "identity")+ 
+  geom_text(size = 3, aes(label = paste("Avg ",avgnumNonBandWriters, " writers"),vjust=ifelse(avgPop > 0,-0.5,1))) +
+  labs(title = "Average Popularity, Complexity, and Non-band Member Writers for each Maroon 5 Album", x = "Album", y = "Average Popularity", fill = "Average Complexity") + 
+  scale_x_discrete(limits = albums, labels = c("Songs About Jane", "It Won't be Soon Before Long", "Hands All Over", "Overexposed", "V", "Red Pill Blues")) + 
+  theme(axis.text.x = element_text(face="bold", angle=90), axis.text = element_text(size = 6)) # + scale_fill_gradient(low="gray", high="red")
 ```
 
 When looking at the data by album, it seems that the charting songs from their first album "Songs About Jane" were significantly more complex than their following works. The second album was less complex, but the third and fourth saw a resurgence in complexity, even with the the fourth album, "Overexposed" having a good number of outside co-writers on charting songs. Popularity was in noticeable decline until this point as well. After the band's label change, complexity turned to head to its lowest point. The charting songs on the "Red Pill Blues" album were on average the least complex and most popular, with songs averaging the most outside influence. 
@@ -365,6 +405,7 @@ What story does this information tell, and what can it teach about modern music 
 &nbsp;
   
   We will really be considering the two first bullet point groups (Maroon 5, Taylor Swift & J Cole, Foo Fighters) since they had definitive and similar trajectory paths in popularity and complexity. Now we will see if there is a significant difference between two main groups seen? Let us now look at standardized popularity and complexity over time for both groups on the same plot and test for significance for each of these metrics over time for both groups.
+  
 ```{r}
 allArtistMetrics = read_csv("FrostData/allArtistMetrics.csv")
 
@@ -383,10 +424,17 @@ groupedArtists = rbind(allArtistMetricsSub1, allArtistMetricsSub2)
 #summary(lm(totalComplexity ~ ReleaseDate, data= allArtistMetricsSub1))
 #summary(lm(totalComplexity ~ ReleaseDate, data= allArtistMetricsSub2))
 
-ggplot(groupedArtists, aes(x= ReleaseDate, y = pop1, color= Group, shape =Group)) + geom_smooth(method= "lm") + geom_point() + labs(title = "Pop1 Score Over Time For Groups of Artists", x= "Release Date", y = "Standardized pop1 Score")
+ggplot(groupedArtists, aes(x= ReleaseDate, y = pop1, color= Group, shape =Group)) + 
+  geom_smooth(method= "lm") + 
+  geom_point() + 
+  labs(title = "Pop1 Score Over Time For Groups of Artists", x= "Release Date", y = "Standardized pop1 Score")
 
-ggplot(groupedArtists, aes(x= ReleaseDate, y = totalComplexity, color= Group, shape =Group)) + geom_smooth(method= "lm") + geom_point() + labs(title = "Total Song Complexity Score Over Time For Groups of Artists", x= "Release Date", y = "Standardized Total Complexity Score")
+ggplot(groupedArtists, aes(x= ReleaseDate, y = totalComplexity, color= Group, shape =Group)) + 
+  geom_smooth(method= "lm") + 
+  geom_point() + 
+  labs(title = "Total Song Complexity Score Over Time For Groups of Artists", x= "Release Date", y = "Standardized Total Complexity Score")
 ```
+  
   In tests for significance of pop1 score and song release date for both groups, neither test has a p-value less than 0.05, but both are very close with regression slope estimates in opposite directions from each other. The p-value for Maroon 5 and Taylor Swift having a positive association between popularity and time is 0.0669, while the p-value for J Cole and the Foo Fighters having a negative association between popularity and time is 0.0861. Together, this serves as reasonable evidence that the groups have different associations between popularity and time to one another. 
   For complexity, a similar result is received. Here, for Maroon 5 and Taylor Swift, a p-value of 0.00299 there is significant evidence that for these artists there is a negative association between complexity and time. Meanwhile, with a p-value of 0.0882, there may be weak evidence, but some indication that there exists a positive association between complexity and time the Foo Fighters and J Cole's music. 
   
@@ -400,6 +448,7 @@ ggplot(groupedArtists, aes(x= ReleaseDate, y = totalComplexity, color= Group, sh
 
 ## Conclusions
   As far as overall relationships the study can pull about big relationships between popularity and complexity, the correlation matrices below can tell us how complexity is related to popularity by standardized by aritst. 
+
 ```{r}
 allArtistMetricsSub = allArtistMetrics[allArtistMetrics$musicalComplexity != 0 ,]
 
@@ -413,7 +462,9 @@ ggplot(allArtistMetricsSub, aes(x = totalComplexity, y = pop1)) +
 
 ### calculate model here; report slope and significance.
 ```
+  
   The correlation is not significant so while the data indicates a very slight negative correlation, there is not significant evidence to support that and artist's popularity is negatively correlated with their music's complexity. What about for data not standardized by artist? Could this yield different results?
+
 ```{r}
 allArtistRegSub = allArtistReg[allArtistReg$musicalComplexity != 0 ,]
 #corr.test(allArtistRegSub[c("totalComplexity", "pop1")])
@@ -423,6 +474,7 @@ ggplot(allArtistRegSub, aes(x = totalComplexity, y = pop1)) +
   geom_point(aes(color = Artist)) +
   stat_smooth(method = "lm")
 ```
+
 Again, the correlation is portrayed as being negative, but not with significance. Therefore, there is not sufficient evidence to support that there is a significant correlation between a song's overall complexity and its popularity.
 
 ```{r}
@@ -431,6 +483,7 @@ ggplot(allArtistRegSub, aes(x = musicalComplexity, y = lyricalComplexity)) +
   geom_point(aes(color = Artist)) +
   stat_smooth(method = "lm")
 ```
+  
   The correlation between musical complexity and lyrical complexity has strong evidence of being significant with a correlation coefficient of -0.29. There are a lot of filled values however as there was a lot of missing data, so this would be more reliable if the dataset was less artificial. 
 
   So overall from the study, it has been seen that it can be difficult to quantify complicated subjective metrics, but that thoughtful efforts to do so can reveal relationships, trends, and groups which form a narrative of the music industry providing outside influence to a musical content in order to control its popularity. Maroon 5 was a perfect case of this concept in action. The band's musical and lyrical complexity dropped, they started incorporating a great number of outside co-writers on their songs, and the popularity saw a surge of growth. We were able to take Maroon 5 and liken them to Taylor Swift and ultimately separate them from another set of different artists, ultimately deeming them "sellouts". Meanwhile, on the other end of the spectrum, this contrasted group of J Cole and Foo Fighters both had significantly less outside influence, and over time increased each of their complexities while seeing the popularity of their music drop. These are isolated incidents, and this is a question which should be addressed on a greater scale, but the results of this study show how there may be reason for concern over the ability of true artists to be successful and independent solely on their own internally created works, as well as how music industry forces may be trying to grab increased control over content creators in order to manufacture popularity. 
